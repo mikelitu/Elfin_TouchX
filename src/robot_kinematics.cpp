@@ -1,11 +1,21 @@
 #include "robot_kinematics.hpp"
-
+/**
+ * @brief Construct a new Elfin Model:: Elfin Model object
+ * 
+ */
 ElfinModel::ElfinModel(){
     d1 = 0.1925;
     a2 = 0.266;  
     d4 = 0.324;
     d6 = 0.155;
 }
+
+/**
+ * @brief 
+ * 
+ * @param cur_kinematics 
+ * @param cur_joints 
+ */
 
 void ElfinModel::GetKinematics(Eigen::Matrix4d& cur_kinematics, Eigen::Matrix<double,1,6>& cur_joints){
     double x1,x2,x3,x4,x5,x6;
@@ -32,6 +42,13 @@ void ElfinModel::GetKinematics(Eigen::Matrix4d& cur_kinematics, Eigen::Matrix<do
         0, 0, 0, 1;
     // std::cout << "kenimatics = " << cur_kenimatics << std::endl;
 }
+
+/**
+ * @brief 
+ * 
+ * @param cur_jacobian 
+ * @param cur_joints 
+ */
 
 void ElfinModel::GetJacobian(Eigen::Matrix<double,6,6>& cur_jacobian, Eigen::Matrix<double,1,6>& cur_joints){
     double x1,x2,x3,x4,x5,x6;
@@ -81,6 +98,15 @@ void ElfinModel::GetJacobian(Eigen::Matrix<double,6,6>& cur_jacobian, Eigen::Mat
     cur_jacobian(5, 5) = cos(x5) * (cos(x2 + M_PI / 2) * cos(x3 + M_PI / 2) + sin(x2 + M_PI / 2) * sin(x3 + M_PI / 2)) - cos(x4) * sin(x5) * (cos(x2 + M_PI / 2) * sin(x3 + M_PI / 2) - cos(x3 + M_PI / 2) * sin(x2 + M_PI / 2));
 }
 
+/**
+ * @brief 
+ * 
+ * @param next_joints 
+ * @param cur_joints 
+ * @param pos_error 
+ * @param roterror 
+ */
+
 void ElfinModel::GetNextJoints(Eigen::Matrix<double,1,6>& next_joints, Eigen::Matrix<double,1,6>& cur_joints, Eigen::Matrix<double,3,1>& pos_error,Eigen::Matrix<double,3,1> roterror){
     Eigen::Matrix4d cur_kinematics;
     Eigen::Matrix<double,6,6> cur_jacobian;
@@ -125,6 +151,13 @@ void ElfinModel::GetNextJoints(Eigen::Matrix<double,1,6>& next_joints, Eigen::Ma
     }
     //std::cout << "next_joints = " << next_joints << std::endl;
 }
+
+/**
+ * @brief 
+ * 
+ * @param cur_joints 
+ * @param R 
+ */
 
 void ElfinModel::GetOri(Eigen::Matrix<double,1,6>& cur_joints, Eigen::Matrix<double,3,3>& R)
 {

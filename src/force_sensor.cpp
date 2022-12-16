@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <iostream>
 
+
 CLinuxSerial::CLinuxSerial(UINT portNo /*=1*/, UINT baudRate /*= 115200*/)
 {
     InitPort(portNo, baudRate);
@@ -38,6 +39,7 @@ void CLinuxSerial::ClosePort()
     close(m_iSerialID);
     m_iSerialID = -1;
 }
+
 
 bool CLinuxSerial::InitPort(UINT portNo /*= 1*/, UINT baudRate /*= 115200*/)
 {

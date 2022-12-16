@@ -3,22 +3,37 @@
 float mapping = 0.2;
 double geo_pos[3];
 
+/**
+ * @brief 
+ * 
+ * @param cur_joints 
+ * @param next_joint 
+ * @param state 
+ * @param next_kinematics 
+ * @param rot_err 
+ */
 
 void RobotControl::Touch2Elfin(Eigen::Matrix<double,1,6>& cur_joints, Eigen::Matrix<double,1,6>& next_joint, 
                               OmniState *state, Eigen::Matrix4d& next_kinematics, Eigen::Matrix<double,3,1>& rot_err) {
+  
   geo_pos[0] = state->position[0];
   geo_pos[1] = state->position[1];
   geo_pos[2] = state->position[2];
   
   // std::cout << geo_pos << std::endl;
 
-  
+
 
 }
 
+/**
+ * @brief 
+ * 
+ * @param state {OmniState}
+ */
 void RobotControl::GeomagicControl(OmniState *state)
 {
-
+    
     DcsCommand roboconnect;
     // ElfinModel elfin;
     std::cout<<"conect ro"<<std::endl;
