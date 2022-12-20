@@ -28,7 +28,7 @@ void RobotControl::Touch2Elfin(Eigen::Matrix<double,1,6>& cur_joints, Eigen::Mat
   // pre_pos[1] = state->pre_position[1];
   // pre_pos[2] = state->pre_position[2];
 
-  pos_error << mapping * (state->position[1] - state->pre_position[1]), -mapping * (state->position[0] - state->pre_position[0]), mapping * (state->position[2] - state->pre_position[2]);
+  pos_error << mapping * (state->position[0] - state->pre_position[0]), mapping * (state->position[2] - state->pre_position[2]), -mapping * (state->position[1] - state->pre_position[1]);
   elfin.GetNextJoints(next_joints, cur_joints, pos_error, rot_err);
 
 }
@@ -74,7 +74,7 @@ void RobotControl::GeomagicControl(OmniState *state)
         Touch2Elfin(cur_joints, next_joints, state, pos_error, rot_err);
         // std::cout << next_joints(0) * 180/M_PI << ", " << next_joints(1) * 180/M_PI << ", " << next_joints(2) * 180/M_PI << ", " << next_joints(3) * 180/M_PI << ", " << next_joints(4) * 180/M_PI << ", " << next_joints(5) * 180/M_PI << ", " << std::endl;
         roboconnect.PushServoJ(next_joints);
-        usleep(20000);
+        usleep(17000);
 
     }
 
