@@ -1,5 +1,4 @@
 #include <thread> 
-#include "opencv2/highgui.hpp"
 #include <iostream>
 #include "image_consumer.hpp"
 #include "force_sensor.hpp"
@@ -13,6 +12,9 @@ Eigen::Matrix<double,1,6> CenterOfTool;
 int calibrationStyle;
 float prev_time;
 float ft_normalized[6];
+int width = 640;
+int height = 480;
+int fps = 30;
 
 HDCallbackCode HDCALLBACK omni_state_callback(void *pUserData) {
     OmniState *omni_state = static_cast<OmniState *>(pUserData);
@@ -21,17 +23,19 @@ HDCallbackCode HDCALLBACK omni_state_callback(void *pUserData) {
     }
     hdBeginFrame(hdGetCurrentDevice());
     // Get transform angles
-    hduMatrix transform;
-    hdGetDoublev(HD_CURRENT_TRANSFORM, transform);
+    hduMatrix cur_transform, pre_transform;
+    hdGetDoublev(HD_CURRENT_TRANSFORM, cur_transform);
+    hdGetDoublev(HD_LAST_TRANSFORM, pre_transform);
     hdGetDoublev(HD_CURRENT_JOINT_ANGLES, omni_state->joints);
     hduVector3Dd gimbal_angles;
     hdGetDoublev(HD_CURRENT_GIMBAL_ANGLES, gimbal_angles);
     // Notice that we are inverting the Z-position value and changing Y <----> Z
     // Position
-    omni_state->position = hduVector3Dd(transform[3][0], -transform[3][2], transform[3][1]);
+    omni_state->pre_position = hduVector3Dd(pre_transform[3][0], -pre_transform[3][2], pre_transform[3][1]);
+    omni_state->position = hduVector3Dd(cur_transform[3][0], -cur_transform[3][2], cur_transform[3][1]);
     // omni_state->position /= omni_state->units_ratio;
     // Orientation (quaternion)
-    hduMatrix rotation(transform);
+    hduMatrix rotation(cur_transform);
     rotation.getRotationMatrix(rotation);
     hduMatrix rotation_offset( 0.0, -1.0, 0.0, 0.0,
                                1.0,  0.0, 0.0, 0.0,
@@ -230,15 +234,15 @@ int main()
     // rotateX = & valuerotate;    // address of storing rotation value
     // translateX = & valuetrans;  // address of storing translation value
 
-    // ImageConsumer image_read_process;
+    ImageConsumer image_consumer;
     RobotControl roboctr;
-    // std::thread task0(&ImageConsumer::ImageReader,image_read_process);
+    std::thread task0(&ImageConsumer::ImagePipeline, image_consumer, width, height, fps);
     // std::thread task1(&ImageConsumer::ImageProcesser,image_read_process,sensor);
 
     // //std::thread task4(testread,rotateX,translateX);
     // std::thread task2(readsensor);
     std::thread task3(&RobotControl::GeomagicControl,roboctr, &state);
-    // task0.join();
+    task0.join();
     // task1.join();
     // //task4.join();
     // task2.join();

@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 2.8)
+cmake_minimum_required (VERSION 3.1.0)
 # set project
 project (elfin_tp)
 
@@ -9,8 +9,10 @@ message(STATUS "OpenCV include path: ${OpenCV_INCLUDE_DIRS}")
 
 #find OpenHaptics
 find_path(OPENHAPTICS_INCLUDE_DIR NAMES HD/hd.h HL/hl.h HDU/hdu.h)
-message(STATUS "OpenHaptics version: ${OPENHAPTICS_VERSION}")
 message(STATUS "OpenHaptics include path: ${OPENHAPTICS_INCLUDE_DIR}")
+
+#find librealsense2
+find_package(realsense2 REQUIRED)
 
 # add source files
 aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/src/ DIR_SRCS)
@@ -29,6 +31,8 @@ set(CMAKE_HAVE_THREADS_LIBRARY 1)
 set(CMAKE_USE_WIN32_THREADS_INIT 0)
 set(CMAKE_USE_PTHREADS_INIT 1)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 
 # add libraries
 include_directories(
@@ -36,21 +40,18 @@ include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty
     ${OPENHAPTICS_INCLUDE_DIR}
+    "/home/mikel/software/stb" #change with your own directory here
 )
 
-add_executable(elfin_tp ${DIR_SRCS})
+add_executable(${PROJECT_NAME} ${DIR_SRCS})
 
-# set c++11 and threading
-set_property(TARGET elfin_tp PROPERTY CXX_STANDARD 14)
-
-target_link_libraries(elfin_tp
+target_link_libraries(${PROJECT_NAME}
 ${OpenCV_LIBS}
 ${DEPENDENCIES}
+${realsense2_LIBRARY}
 HD
 HL
 HDU
 rt
 ncurses
-/usr/lib
-/usr
 )
