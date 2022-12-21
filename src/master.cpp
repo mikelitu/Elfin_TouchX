@@ -233,33 +233,36 @@ int main()
         hduPrintError(stderr, &error, "Failed to initialized haptic device");
     }
 
+    // Enable force feedback
     hdEnable(HD_FORCE_OUTPUT);
+    //Start the scheduler
     hdStartScheduler();
     if (HD_DEVICE_ERROR(error = hdGetError())) {
         hduPrintError(stderr, &error, "Failed to start the scheduler");
     }
 
     HHD_Auto_Calibration();
-
+    // Define the callback loop
     OmniState state;
     hdScheduleAsynchronous(omni_state_callback, &state,
         HD_MAX_SCHEDULER_PRIORITY);
 
-
+    // Call dependencies from other header files
     ImageConsumer image_consumer;
     RobotControl roboctr;
 
     // Create a file to write the labels for the experiment
-
     state_file.open(filename, std::ios::out);
     state_file << "Pos_Rob_X,Pos_Rob_Y,Pos_Rob_Z,Or_Rob_X,Or_Rob_Y,Or_Rob_Z,J_Rob_1,J_Rob_2,J_Rob_3,J_Rob_4,J_Rob_5,J_Rob_6,Pos_Hap_X,Pos_Hap_Y,Pos_Hap_Z,Or_Hap_X,Or_Hap_Y,Or_Hap_Z,Or_Hap_W,J_Hap_1,J_Hap_2,J_Hap_3,J_Hap_4,J_Hap_5,J_Hap_6,F_X,F_Y,F_Z,T_X,T_Y,T_Z\n";
     state_file.close();
 
-    std::thread task0(&ImageConsumer::ImagePipeline, image_consumer, width, height, fps);
-    std::thread task1(&ImageConsumer::ImageWindow, image_consumer);
-    std::thread task2(readsensor, &state);
-    std::thread task3(&RobotControl::GeomagicControl,roboctr, &state, std::ref(cur_joints));
+    // Start all the threads corresponding to the different parts of the control loop
+    std::thread task0(&ImageConsumer::ImagePipeline, image_consumer, width, height, fps); // Image saving pipeline
+    std::thread task1(&ImageConsumer::ImageWindow, image_consumer); // CV imshow  
+    std::thread task2(readsensor, &state); // Force sensor and state recording
+    std::thread task3(&RobotControl::GeomagicControl,roboctr, &state, std::ref(cur_joints)); // Robot teleoperation
 
+    // Join to the different threads
     task0.join();
     task1.join();
     task2.join();

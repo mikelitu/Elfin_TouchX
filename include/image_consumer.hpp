@@ -9,8 +9,6 @@
 #include <robot_control.hpp>
 
 
-void metadata_to_csv(const rs2::frame& frm, const std::string& filename);
-
 class ImageConsumer{
     public:
         ImageConsumer()

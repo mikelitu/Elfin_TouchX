@@ -20,7 +20,13 @@ struct ImageData {
 
 ImageData capturedata[BUFFER_SIZE];
 
-
+/**
+ * @brief Realsense camera image pipeline and disk-saving function
+ * 
+ * @param width Image width to initialize the Realsense pipeline (max. 1280)
+ * @param height Image height to initialize the Realsense pipeline (max. 720)
+ * @param fps Video fps to initialize the Realsense pipeline (max 90)
+ */
 
 void ImageConsumer::ImagePipeline(int width, int height, int fps) {
     
@@ -30,8 +36,7 @@ void ImageConsumer::ImagePipeline(int width, int height, int fps) {
     cfg.enable_stream(RS2_STREAM_COLOR, width, height, RS2_FORMAT_RGB8, fps);
 
 
-    // Start streaming with default recommended configuration
-
+    // Start streaming with the defined parameters
     p.start(cfg);
 
     while(true)
@@ -56,6 +61,10 @@ void ImageConsumer::ImagePipeline(int width, int height, int fps) {
 
 }
 
+/**
+ * @brief Function to display Realsense camera using OpenCV
+ * 
+ */
 void ImageConsumer::ImageWindow()
 {
     cv::Mat frame;
@@ -74,23 +83,3 @@ void ImageConsumer::ImageWindow()
     }
 }
 
-void metadata_to_csv(const rs2::frame& frm, const std::string& filename)
-{
-    std::ofstream csv;
-
-    csv.open(filename);
-
-    csv << " Stream," << rs2_stream_to_string(frm.get_profile().stream_type()) << "\nMetadata Atribute,Value\n";
-
-    // Record all the available metadata values
-    for (size_t i = 0; i < RS2_FRAME_METADATA_COUNT; i++)
-    {
-        if (frm.supports_frame_metadata((rs2_frame_metadata_value)i))
-        {
-            csv << rs2_frame_metadata_to_string((rs2_frame_metadata_value)i) << ","
-                << frm.get_frame_metadata((rs2_frame_metadata_value)i) << "\n";
-        }
-    }
-
-    csv.close();
-}
