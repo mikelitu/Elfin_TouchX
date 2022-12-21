@@ -12,7 +12,7 @@ This repository was tested in **Ubuntu20.04 LTS (Focal Fossa) 64-bit**.  This re
 
 ## Requirements
 
-This repository depends on different external libraries that need to be installed in your local pc.
+You need CXX 11 compiler to compile the project binary. This repository depends on different external libraries that need to be installed in your local pc.
 
 ### Eigen
 
