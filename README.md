@@ -34,3 +34,13 @@ To install OpenCV use the following commands on the terminal.
 $ sudo apt update
 $ sudo apt install libopencv-dev python3-opencv
 ```
+
+### STB
+
+We use stb to save the images into the disk following the tutorial from librealsense [here](https://github.com/IntelRealSense/librealsense/tree/master/examples/save-to-disk). You can find STB in their [github repository](https://github.com/nothings/stb). Clone their repository in your home directory with the following command.
+
+```
+$ git clone https://github.com/nothings/stb.git
+```
+
+Change **line 43** in the *[CMakeLists.txt](CMakeLists.txt)* file to match with your directory to the STB library.

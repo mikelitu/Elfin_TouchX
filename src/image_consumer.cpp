@@ -6,13 +6,11 @@
 
 volatile unsigned int prdIdx = 0;
 volatile unsigned int csmIdx = 0;
+// Saving image tracker
 volatile unsigned int i = 0;
 
-// image processing spped output
-double time_process;
-char process_time[30];
-char timenow[20];
 
+// Image buffer to keep track of images and update the view
 struct ImageData {
     cv::Mat img;
     unsigned int frame; //frame counter
@@ -21,7 +19,8 @@ struct ImageData {
 ImageData capturedata[BUFFER_SIZE];
 
 /**
- * @brief Realsense camera image pipeline and disk-saving function
+ * @brief Realsense camera image pipeline and disk-saving function, based on the librealsense tutorial
+ * (https://github.com/IntelRealSense/librealsense/tree/master/examples/save-to-disk)
  * 
  * @param width Image width to initialize the Realsense pipeline (max. 1280)
  * @param height Image height to initialize the Realsense pipeline (max. 720)
@@ -62,7 +61,8 @@ void ImageConsumer::ImagePipeline(int width, int height, int fps) {
 }
 
 /**
- * @brief Function to display Realsense camera using OpenCV
+ * @brief Function to display Realsense camera using OpenCV, based on the librealsense tutorial 
+ * (https://github.com/IntelRealSense/librealsense/blob/master/wrappers/opencv/imshow/rs-imshow.cpp)
  * 
  */
 void ImageConsumer::ImageWindow()
