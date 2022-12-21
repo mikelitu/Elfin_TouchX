@@ -2,6 +2,7 @@
 #include "stb_image_write.h"
 #include <image_consumer.hpp>
 
+
 void ImageConsumer::ImagePipeline(int width, int height, int fps) {
 
     rs2::colorizer color_map;
@@ -15,7 +16,10 @@ void ImageConsumer::ImagePipeline(int width, int height, int fps) {
 
     p.start(cfg);
 
-    for (int i = 0; i < 30; i++) p.wait_for_frames();
+    for (int i = 0; i < 30; i++)
+    {
+        p.wait_for_frames();
+    } 
 
     std::cout << "Recording..." << std::endl;
 
@@ -41,6 +45,11 @@ void ImageConsumer::ImagePipeline(int width, int height, int fps) {
 
 }
 
+void ImageConsumer::ImageWindow(rs2::frame& frame, std::string& window_name)
+{
+    
+}
+
 void metadata_to_csv(const rs2::frame& frm, const std::string& filename)
 {
     std::ofstream csv;
@@ -61,4 +70,3 @@ void metadata_to_csv(const rs2::frame& frm, const std::string& filename)
 
     csv.close();
 }
-

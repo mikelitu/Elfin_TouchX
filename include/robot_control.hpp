@@ -1,3 +1,4 @@
+#pragma once
 #include "robot_command.hpp"
 #include "robot_kinematics.hpp"
 #include <iostream>

@@ -15,6 +15,8 @@ float ft_normalized[6];
 int width = 640;
 int height = 480;
 int fps = 30;
+std::string filename = "data/label.csv";
+std::fstream state_file;
 
 HDCallbackCode HDCALLBACK omni_state_callback(void *pUserData) {
     OmniState *omni_state = static_cast<OmniState *>(pUserData);
@@ -61,13 +63,12 @@ HDCallbackCode HDCALLBACK omni_state_callback(void *pUserData) {
     omni_state->out_vel1 = omni_state->velocity;
 
     hduVector3Dd feedback;
-    // Notice that we are changing Y <---> Z and inverting the Z-force_feeback
+    // Notice we are changing Y <----> Z and inverting the Z-force_feedback
     feedback[0] = omni_state->force[0];
     feedback[1] = omni_state->force[1];
     feedback[2] = omni_state->force[2];
     hdSetDoublev(HD_CURRENT_FORCE, feedback);
 
-    // Get buttons
     int nButtons = 0;
     hdGetIntegerv(HD_CURRENT_BUTTONS, &nButtons);
     omni_state->buttons[0] = (nButtons & HD_DEVICE_BUTTON_1) ? 1 : 0;
@@ -168,14 +169,26 @@ void ForceTorqueError(Eigen::Matrix<double,3,3>& R, float sensor[6])
         }
     }
 
-    std::cout << sensor[0] <<" "<< std::endl;
-
 }
 
-void readsensor()
+void savestate(OmniState *state, Eigen::Matrix4d& cur_kinematics, Eigen::Matrix<double,1,6>& cur_joints)
+{
+
+  state_file.open(filename, std::ios::app);
+  state_file << cur_kinematics(0,3) << "," << cur_kinematics(1,3) << "," << cur_kinematics(2,3) << "," << cur_kinematics(0,0) << "," << cur_kinematics(1,1) << ","
+             << cur_kinematics(2,2) << "," << cur_joints(0) << "," << cur_joints(1) << "," << cur_joints(2) << "," << cur_joints(3) << "," << cur_joints(4) << ","
+             << cur_joints(5) << "," << state->position[0] << "," << state->position[1] << "," << state->position[2] << "," << state->rot[0] << ","
+             << state->rot[1] << "," << state->rot[2] << "," << state->rot[3] << "," << sensor[0] << "," << sensor[1] << "," << sensor[2] << "," << sensor[3] << ","
+             << sensor[4] << "," << sensor[5] << "\n";
+             
+  state_file.close();
+}
+
+void readsensor(OmniState *state)
 {
     CLinuxSerial forcesensor(0,115200);
     Eigen::Matrix<double,3,3> R;
+    Eigen::Matrix4d cur_kinematics;
     ElfinModel elfin;
     while (true)
     {
@@ -184,8 +197,10 @@ void readsensor()
         {
             sensor[i]=forcesensor.sensor[i];
         }
-        elfin.GetOri(cur_joints, R);
+        elfin.GetKinematics(cur_kinematics, cur_joints);
+        R = cur_kinematics.block(0,0,3,3);
         ForceTorqueError(R, sensor);
+        savestate(state, cur_kinematics, cur_joints);
     }
 }
 
@@ -200,6 +215,8 @@ void testread(double *testrr,double *testtt)
     }
     
 }
+
+
 
 int main()
 {   
@@ -236,11 +253,15 @@ int main()
 
     ImageConsumer image_consumer;
     RobotControl roboctr;
+    state_file.open(filename, std::ios::out);
+    state_file << "P_R_X,P_R_Y,P_R_Z,O_R_X,O_R_Y,O_R_Z,J_R_1,J_R_2,J_R_3,J_R_4,J_R_5,J_R_6,P_H_X,P_H_Y,P_H_Z,O_H_X,O_H_Y,O_H_Z,O_H_W,J_H_1,J_H_2,J_H_3,J_H_4,J_H_5,J_H_6,F_X,F_Y,F_Z,T_X,T_Y,T_Z\n";
+    state_file.close();
+
     std::thread task0(&ImageConsumer::ImagePipeline, image_consumer, width, height, fps);
     // std::thread task1(&ImageConsumer::ImageProcesser,image_read_process,sensor);
 
     // //std::thread task4(testread,rotateX,translateX);
-    // std::thread task2(readsensor);
+    // std::thread task2(readsensor, &state, &filename);
     std::thread task3(&RobotControl::GeomagicControl,roboctr, &state);
     task0.join();
     // task1.join();
