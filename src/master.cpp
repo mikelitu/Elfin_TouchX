@@ -178,8 +178,9 @@ void savestate(OmniState *state, Eigen::Matrix4d& cur_kinematics, Eigen::Matrix<
   state_file << cur_kinematics(0,3) << "," << cur_kinematics(1,3) << "," << cur_kinematics(2,3) << "," << cur_kinematics(0,0) << "," << cur_kinematics(1,1) << ","
              << cur_kinematics(2,2) << "," << cur_joints(0) << "," << cur_joints(1) << "," << cur_joints(2) << "," << cur_joints(3) << "," << cur_joints(4) << ","
              << cur_joints(5) << "," << state->position[0] << "," << state->position[1] << "," << state->position[2] << "," << state->rot[0] << ","
-             << state->rot[1] << "," << state->rot[2] << "," << state->rot[3] << "," << sensor[0] << "," << sensor[1] << "," << sensor[2] << "," << sensor[3] << ","
-             << sensor[4] << "," << sensor[5] << "\n";
+             << state->rot[1] << "," << state->rot[2] << "," << state->rot[3] << "," << state->joints[0] << "," << state->joints[1] << "," << state->joints[2] << ","
+             << state->joints[3] << "," << state->joints[4] << "," << state->joints[5] << "," << sensor[0] << "," << sensor[1] << "," << sensor[2] << "," 
+             << sensor[3] << "," << sensor[4] << "," << sensor[5] << "\n";
              
   state_file.close();
 }
@@ -190,6 +191,7 @@ void readsensor(OmniState *state)
     Eigen::Matrix<double,3,3> R;
     Eigen::Matrix4d cur_kinematics;
     ElfinModel elfin;
+
     while (true)
     {
         forcesensor.Sensor();
@@ -197,10 +199,12 @@ void readsensor(OmniState *state)
         {
             sensor[i]=forcesensor.sensor[i];
         }
+        
         elfin.GetKinematics(cur_kinematics, cur_joints);
         R = cur_kinematics.block(0,0,3,3);
         ForceTorqueError(R, sensor);
         savestate(state, cur_kinematics, cur_joints);
+        usleep(50000);
     }
 }
 
@@ -215,7 +219,6 @@ void testread(double *testrr,double *testtt)
     }
     
 }
-
 
 
 int main()
@@ -242,31 +245,24 @@ int main()
     hdScheduleAsynchronous(omni_state_callback, &state,
         HD_MAX_SCHEDULER_PRIORITY);
 
-    // pointers for us image algrithom calculation
-    // double *rotateX;
-    // double *translateX;
-    // double valuerotate=0;
-    // double valuetrans = 0;
-
-    // rotateX = & valuerotate;    // address of storing rotation value
-    // translateX = & valuetrans;  // address of storing translation value
 
     ImageConsumer image_consumer;
     RobotControl roboctr;
+
+    // Create a file to write the labels for the experiment
+
     state_file.open(filename, std::ios::out);
-    state_file << "P_R_X,P_R_Y,P_R_Z,O_R_X,O_R_Y,O_R_Z,J_R_1,J_R_2,J_R_3,J_R_4,J_R_5,J_R_6,P_H_X,P_H_Y,P_H_Z,O_H_X,O_H_Y,O_H_Z,O_H_W,J_H_1,J_H_2,J_H_3,J_H_4,J_H_5,J_H_6,F_X,F_Y,F_Z,T_X,T_Y,T_Z\n";
+    state_file << "Pos_Rob_X,Pos_Rob_Y,Pos_Rob_Z,Or_Rob_X,Or_Rob_Y,Or_Rob_Z,J_Rob_1,J_Rob_2,J_Rob_3,J_Rob_4,J_Rob_5,J_Rob_6,Pos_Hap_X,Pos_Hap_Y,Pos_Hap_Z,Or_Hap_X,Or_Hap_Y,Or_Hap_Z,Or_Hap_W,J_Hap_1,J_Hap_2,J_Hap_3,J_Hap_4,J_Hap_5,J_Hap_6,F_X,F_Y,F_Z,T_X,T_Y,T_Z\n";
     state_file.close();
 
     std::thread task0(&ImageConsumer::ImagePipeline, image_consumer, width, height, fps);
-    // std::thread task1(&ImageConsumer::ImageProcesser,image_read_process,sensor);
+    std::thread task1(&ImageConsumer::ImageWindow, image_consumer);
+    std::thread task2(readsensor, &state);
+    std::thread task3(&RobotControl::GeomagicControl,roboctr, &state, std::ref(cur_joints));
 
-    // //std::thread task4(testread,rotateX,translateX);
-    // std::thread task2(readsensor, &state, &filename);
-    std::thread task3(&RobotControl::GeomagicControl,roboctr, &state);
     task0.join();
-    // task1.join();
-    // //task4.join();
-    // task2.join();
+    task1.join();
+    task2.join();
     task3.join();
 
     hdStopScheduler();

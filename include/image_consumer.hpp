@@ -18,6 +18,6 @@ class ImageConsumer{
             
         }
         void ImagePipeline(int width, int height, int fps);
-        void ImageWindow(rs2::frame& color, std::string& window_name);
+        void ImageWindow();
         
 };

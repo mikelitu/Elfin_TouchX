@@ -41,6 +41,6 @@ class RobotControl{
 
         }
 
-        void GeomagicControl(OmniState *state);
+        void GeomagicControl(OmniState *state, Eigen::Matrix<double,1,6>& cur_joints);
         void Touch2Elfin(Eigen::Matrix<double,1,6>& cur_joints, Eigen::Matrix<double,1,6>& next_joint, OmniState *state, Eigen::Matrix<double,3,1> pos_error, Eigen::Matrix<double,3,1>& rot_err);
 };

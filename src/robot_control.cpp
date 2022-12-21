@@ -38,7 +38,7 @@ void RobotControl::Touch2Elfin(Eigen::Matrix<double,1,6>& cur_joints, Eigen::Mat
  * 
  * @param state {OmniState}
  */
-void RobotControl::GeomagicControl(OmniState *state)
+void RobotControl::GeomagicControl(OmniState *state, Eigen::Matrix<double,1,6>& cur_joints)
 {
     
     DcsCommand roboconnect;
@@ -58,7 +58,7 @@ void RobotControl::GeomagicControl(OmniState *state)
     double lookahead_time = 0.2;
     roboconnect.StartServo(servo_time,lookahead_time);
 
-    Eigen::Matrix<double,1,6> cur_joints, next_joints;
+    Eigen::Matrix<double,1,6> next_joints;
     Eigen::Matrix<double,6,1> targetdiff;
     Eigen::Matrix<double,3,1> rot_err, pos_error;
 
