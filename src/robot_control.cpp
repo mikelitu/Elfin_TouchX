@@ -2,8 +2,31 @@
 #include "fstream"
 
 double mapping = 0.25;
-double pre_pos[3], cur_pos[3];
+double pre_pos[3], cur_pos[3], euler_angles[3];
 ElfinModel elfin;
+
+void EulerfromQuaternion(double x, double y, double z, double w) {
+    double t0 = 2.0 * (w * x + y * z);
+    double t1 = 1.0 -2.0 * (x * x + y * y);
+    double roll_x = atan2(t0, t1);
+
+    double t2 = 2.0 * (w * y - z * w);
+    if (t2 > 1.0) {
+        t2 = 1.0;
+    } else if (t2 < -1.0)
+    {
+        t2 = -1.0;
+    }
+    double pitch_y = asin(t2);
+
+    double t3 = 2.0 * (w * z + x * y);
+    double t4 = 1.0 - 2.0 * (y * y + z * z);
+    double yaw_z = atan2(t3, t4);
+
+    euler_angles[0] = roll_x;
+    euler_angles[1] = pitch_y;
+    euler_angles[2] = yaw_z;
+}
 
 /**
  * @brief Function to map the twists from the TouchX to the Elfin arm
@@ -19,6 +42,7 @@ void RobotControl::Touch2Elfin(Eigen::Matrix<double,1,6>& cur_joints, Eigen::Mat
                               OmniState *state, Eigen::Matrix<double,3,1> pos_error, Eigen::Matrix<double,3,1>& rot_err) {
 
   pos_error << mapping * (state->position[0] - state->pre_position[0]), mapping * (state->position[2] - state->pre_position[2]), -mapping * (state->position[1] - state->pre_position[1]);
+  
   elfin.GetNextJoints(next_joints, cur_joints, pos_error, rot_err);
 
 }
