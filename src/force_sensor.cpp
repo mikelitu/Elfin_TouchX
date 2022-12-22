@@ -223,17 +223,3 @@ void CLinuxSerial::Sensor()
         }
     }
 }
-
-
-// void CLinuxSerial::ReadSensor()
-// {
-//     while (true)
-//     {
-//         Sensor();
-//         // for (int i = 0; i < 6; i++)
-//         // {
-//         //     std::cout << sensor[i] << ",";
-//         // }
-//         // std::cout << std::endl;
-//     }
-// }
