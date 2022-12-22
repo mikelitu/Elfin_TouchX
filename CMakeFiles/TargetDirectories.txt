@@ -1,3 +1,0 @@
-/home/mikel/cpp/CMakeFiles/rebuild_cache.dir
-/home/mikel/cpp/CMakeFiles/edit_cache.dir
-/home/mikel/cpp/CMakeFiles/elfin_tp.dir
