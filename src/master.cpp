@@ -185,12 +185,14 @@ void savestate(OmniState *state, Eigen::Matrix4d& cur_kinematics, Eigen::Matrix<
   state_file.close();
 }
 
-void readsensor(OmniState *state)
+void recordstate(OmniState *state)
 {
     CLinuxSerial forcesensor(0,115200);
     Eigen::Matrix<double,3,3> R;
     Eigen::Matrix4d cur_kinematics;
     ElfinModel elfin;
+    GravityAndError << -0.362162238545071, -0.9488305303568482, 0.5030068847143674, 1.9688996629897009, 1.3928323099319975, 6.8120990353488615;
+    CenterOfTool << 0.00016050140031025704, -0.00034666077586843096, 0.01056880047982528, 0.0566170134752443, -0.04367895455031198, -0.07368130590294658;
 
     while (true)
     {
@@ -204,20 +206,8 @@ void readsensor(OmniState *state)
         R = cur_kinematics.block(0,0,3,3);
         ForceTorqueError(R, sensor);
         savestate(state, cur_kinematics, cur_joints);
-        usleep(50000);
+        usleep(5000);
     }
-}
-
-void testread(double *testrr,double *testtt)
-{
-    while (true)
-    {
-        //std::cout<<pointer->xroterr<<","<<pointer->xtraerr<<std::endl;
-        
-        std::cout<<"!!!!!!!!!! "<<*testrr<<","<<*testtt<<std::endl;
-        usleep(100000);
-    }
-    
 }
 
 
@@ -259,7 +249,7 @@ int main()
     // Start all the threads corresponding to the different parts of the control loop
     std::thread task0(&ImageConsumer::ImagePipeline, image_consumer, width, height, fps); // Image saving pipeline
     std::thread task1(&ImageConsumer::ImageWindow, image_consumer); // CV imshow  
-    std::thread task2(readsensor, &state); // Force sensor and state recording
+    std::thread task2(recordstate, &state); // Force sensor and state recording
     std::thread task3(&RobotControl::GeomagicControl,roboctr, &state, std::ref(cur_joints)); // Robot teleoperation
 
     // Join to the different threads
