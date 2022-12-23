@@ -13,7 +13,7 @@ class ImageConsumer{
         {
             
         }
-        void ImagePipeline(int width, int height, int fps, bool& init_exp);
+        void ImagePipeline(int width, int height, int fps, bool& init_exp, std::string& save_dir);
         void ImageWindow();
         
 };

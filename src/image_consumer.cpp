@@ -27,7 +27,7 @@ ImageData capturedata[BUFFER_SIZE];
  * @param fps Video fps to initialize the Realsense pipeline (max 90)
  */
 
-void ImageConsumer::ImagePipeline(int width, int height, int fps, bool& init_exp) {
+void ImageConsumer::ImagePipeline(int width, int height, int fps, bool& init_exp, std::string& save_dir) {
     
     // Declare RealSense pipeline, encapsulating the actual device and sensors 
     rs2::pipeline p;
@@ -50,7 +50,7 @@ void ImageConsumer::ImagePipeline(int width, int height, int fps, bool& init_exp
         if (init_exp)
         {
             std::stringstream png_file;
-            png_file << "data/img_" << std::setfill('0') << std::setw(4) << i << ".png";
+            png_file << save_dir << "/" << std::setfill('0') << std::setw(4) << i << ".png";
             stbi_write_png(png_file.str().c_str(), color.as<rs2::video_frame>().get_width(), color.as<rs2::video_frame>().get_height(), 
                             color.as<rs2::video_frame>().get_bytes_per_pixel(), (void*)color.get_data(), color.as<rs2::video_frame>().get_stride_in_bytes());
             i++;

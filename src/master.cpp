@@ -1,23 +1,34 @@
 #include <thread> 
 #include <iostream>
+#include <algorithm>
 #include "image_consumer.hpp"
 #include "force_sensor.hpp"
 #include "robot_control.hpp"
 #include "Eigen/Dense"
+#include <filesystem>
+#include <signal.h>
 
-float sensor[6];
-Eigen::Matrix<double,1,6> cur_joints;
-Eigen::Matrix<double,1,6> GravityAndError;
-Eigen::Matrix<double,1,6> CenterOfTool;
-int calibrationStyle;
-float prev_time;
-float ft_normalized[6];
-int width = 640;
-int height = 480;
-int fps = 30;
-std::string filename = "data/label.csv";
-std::fstream state_file;
-bool init_exp = false;
+float sensor[6]; // sensor values
+Eigen::Matrix<double,1,6> cur_joints; // current joints value
+Eigen::Matrix<double,1,6> GravityAndError; // gravity compesentation vector
+Eigen::Matrix<double,1,6> CenterOfTool; // center of mass of the tool
+Eigen::Matrix4d cur_kinematics; // the value of the current kinematics
+int calibrationStyle; // calibration style for the omni device
+int width = 640; // camera image width
+int height = 480; // camera image height
+int fps = 30; // fps of the video
+bool init_exp = false; // flag to intialize the experiment
+std::stringstream state_stream; // stream to save the robot state
+std::string save_dir = "/home/mikel/experiments"; // home folder for the experiments data
+std::fstream state_file; // file stream to save the state data
+namespace fs = std::filesystem;
+
+/**
+ * @brief Callback function for the TouchX device
+ * 
+ * @param pUserData Data structure to cast into the state structure
+ * @return HDCallbackCode 
+ */
 
 HDCallbackCode HDCALLBACK omni_state_callback(void *pUserData) {
     OmniState *omni_state = static_cast<OmniState *>(pUserData);
@@ -95,6 +106,10 @@ HDCallbackCode HDCALLBACK omni_state_callback(void *pUserData) {
     return HD_CALLBACK_CONTINUE;
 }
 
+/**
+ * @brief Calibration function for the TouchX
+ * 
+ */
 void HHD_Auto_Calibration() {
     int supportedCalibrationStyles;
     HDErrorInfo error;
@@ -137,6 +152,12 @@ void HHD_Auto_Calibration() {
 
 }
 
+/**
+ * @brief Gravity compensation of the sensor
+ * 
+ * @param R Current rotation matrix of the robot end effector
+ * @param sensor Raw values of the sensor
+ */
 
 void ForceTorqueError(Eigen::Matrix<double,3,3>& R, float sensor[6])
 {
@@ -175,29 +196,41 @@ void ForceTorqueError(Eigen::Matrix<double,3,3>& R, float sensor[6])
 
 }
 
-void savestate(OmniState *state, Eigen::Matrix4d& cur_kinematics, Eigen::Matrix<double,1,6>& cur_joints)
+/**
+ * @brief Update the state stream
+ * 
+ * @param state TouchX current state information
+ * @param init_exp Flag that states if the robot has reached the initial position
+ * @param filename Name of the labels file
+ */
+void savestate(OmniState *state, bool& init_exp, std::string& filename)
 {
-
   state_file.open(filename, std::ios::app);
-  state_file << cur_kinematics(0,3) << "," << cur_kinematics(1,3) << "," << cur_kinematics(2,3) << "," << cur_kinematics(0,0) << "," << cur_kinematics(1,1) << ","
-             << cur_kinematics(2,2) << "," << cur_joints(0) << "," << cur_joints(1) << "," << cur_joints(2) << "," << cur_joints(3) << "," << cur_joints(4) << ","
-             << cur_joints(5) << "," << state->position[0] << "," << state->position[1] << "," << state->position[2] << "," << state->rot[0] << ","
-             << state->rot[1] << "," << state->rot[2] << "," << state->rot[3] << "," << state->joints[0] << "," << state->joints[1] << "," << state->joints[2] << ","
-             << state->joints[3] << "," << state->joints[4] << "," << state->joints[5] << "," << sensor[0] << "," << sensor[1] << "," << sensor[2] << "," 
-             << sensor[3] << "," << sensor[4] << "," << sensor[5] << "\n";
-             
-  state_file.close();
+
+  while (true) {
+    if (init_exp) {
+      state_stream << cur_kinematics(0,3) << "," << cur_kinematics(1,3) << "," << cur_kinematics(2,3) << "," << cur_kinematics(0,0) << "," << cur_kinematics(1,1) << ","
+                  << cur_kinematics(2,2) << "," << cur_joints(0) << "," << cur_joints(1) << "," << cur_joints(2) << "," << cur_joints(3) << "," << cur_joints(4) << ","
+                  << cur_joints(5) << "," << state->position[0] << "," << state->position[1] << "," << state->position[2] << "," << state->rot[0] << ","
+                  << state->rot[1] << "," << state->rot[2] << "," << state->rot[3] << "," << state->joints[0] << "," << state->joints[1] << "," << state->joints[2] << ","
+                  << state->joints[3] << "," << state->joints[4] << "," << state->joints[5] << "," << sensor[0] << "," << sensor[1] << "," << sensor[2] << "," 
+                  << sensor[3] << "," << sensor[4] << "," << sensor[5] << "\n";
+      usleep(5000);
+    }
+  }        
 }
 
-void recordstate(OmniState *state, bool& init_exp)
+/**
+ * @brief Update the state and sensor vectors
+ */
+void readstate()
 {
     CLinuxSerial forcesensor(0,115200);
     Eigen::Matrix<double,3,3> R;
-    Eigen::Matrix4d cur_kinematics;
     ElfinModel elfin;
     GravityAndError << -0.362162238545071, -0.9488305303568482, 0.5030068847143674, 1.9688996629897009, 1.3928323099319975, 6.8120990353488615;
     CenterOfTool << 0.00016050140031025704, -0.00034666077586843096, 0.01056880047982528, 0.0566170134752443, -0.04367895455031198, -0.07368130590294658;
-
+    
     while (true)
     {
         forcesensor.Sensor();
@@ -209,26 +242,39 @@ void recordstate(OmniState *state, bool& init_exp)
         elfin.GetKinematics(cur_kinematics, cur_joints);
         R = cur_kinematics.block(0,0,3,3);
         ForceTorqueError(R, sensor);
-        if (init_exp) savestate(state, cur_kinematics, cur_joints);
-        usleep(5000);
+        usleep(2000);
+
     }
 }
 
+/**
+ * @brief Function to save the state stream and kill the program
+ * 
+ * @param sig Signal type
+ */
+void end_experiment(int sig) {
+  std::cout << "Caugth signal" <<std::endl;
+  state_file << state_stream.str();
+  state_file.close();
+  exit(0);
+}
 
-int main()
+
+int main(int argc, char *argv[])
 {   
     /////////////////////
     /// Init Touch X ///
     ///////////////////
     HDErrorInfo error;
     HHD hHD;
-    hHD = hdInitDevice(HD_DEFAULT_DEVICE);
+    hdInitDevice(HD_DEFAULT_DEVICE);
     if (HD_DEVICE_ERROR(error = hdGetError())) {
-        hduPrintError(stderr, &error, "Failed to initialized haptic device");
+      hduPrintError(stderr, &error, "Failed to initialized haptic device");
     }
 
     // Enable force feedback
     hdEnable(HD_FORCE_OUTPUT);
+
     //Start the scheduler
     hdStartScheduler();
     if (HD_DEVICE_ERROR(error = hdGetError())) {
@@ -246,14 +292,33 @@ int main()
     RobotControl roboctr;
 
     // Create a file to write the labels for the experiment
+    
+    if (argc < 2) {
+      std::string exp_name = "last_data";
+      save_dir += "/" + exp_name;
+    } else {
+      std::string exp_name = argv[1];
+      save_dir += "/" + exp_name;
+    }
+    
+    if (!fs::exists(save_dir)) {
+        fs::create_directories(save_dir);
+    }
+    
+
+    std::string filename = save_dir + "/labels.csv";
+    std::fstream state_file;
     state_file.open(filename, std::ios::out);
     state_file << "Pos_Rob_X,Pos_Rob_Y,Pos_Rob_Z,Or_Rob_X,Or_Rob_Y,Or_Rob_Z,J_Rob_1,J_Rob_2,J_Rob_3,J_Rob_4,J_Rob_5,J_Rob_6,Pos_Hap_X,Pos_Hap_Y,Pos_Hap_Z,Or_Hap_X,Or_Hap_Y,Or_Hap_Z,Or_Hap_W,J_Hap_1,J_Hap_2,J_Hap_3,J_Hap_4,J_Hap_5,J_Hap_6,F_X,F_Y,F_Z,T_X,T_Y,T_Z\n";
     state_file.close();
 
+    signal(SIGINT, end_experiment); // Function to catch the Ctr+C command and save the data stream into the csv file
+
     // Start all the threads corresponding to the different parts of the control loop
-    std::thread task0(&ImageConsumer::ImagePipeline, image_consumer, width, height, fps, std::ref(init_exp)); // Image saving pipeline
+    std::thread task0(&ImageConsumer::ImagePipeline, image_consumer, width, height, fps, std::ref(init_exp), std::ref(save_dir)); // Image saving pipeline
     std::thread task1(&ImageConsumer::ImageWindow, image_consumer); // CV imshow  
-    std::thread task2(recordstate, &state, std::ref(init_exp)); // Force sensor and state recording
+    std::thread task2(readstate); // Force sensor and state update
+    std::thread task4(savestate, &state, std::ref(init_exp), std::ref(filename)); // State string stream update
     std::thread task3(&RobotControl::GeomagicControl,roboctr, &state, std::ref(cur_joints), std::ref(init_exp)); // Robot teleoperation
 
     // Join to the different threads
@@ -261,6 +326,7 @@ int main()
     task1.join();
     task2.join();
     task3.join();
+    task4.join();
 
     hdStopScheduler();
     hdDisableDevice(hHD);
