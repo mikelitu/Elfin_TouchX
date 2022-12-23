@@ -305,7 +305,7 @@ int main(int argc, char *argv[])
         fs::create_directories(save_dir);
     }
     
-
+    // Initialize the file to save the state afterwards
     std::string filename = save_dir + "/labels.csv";
     std::fstream state_file;
     state_file.open(filename, std::ios::out);
