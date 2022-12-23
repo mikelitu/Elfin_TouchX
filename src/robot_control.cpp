@@ -42,7 +42,11 @@ void RobotControl::Touch2Elfin(Eigen::Matrix<double,1,6>& cur_joints, Eigen::Mat
                               OmniState *state, Eigen::Matrix<double,3,1> pos_error, Eigen::Matrix<double,3,1>& rot_err) {
 
   pos_error << mapping * (state->position[0] - state->pre_position[0]), mapping * (state->position[2] - state->pre_position[2]), -mapping * (state->position[1] - state->pre_position[1]);
-  
+  EulerfromQuaternion(mapping * (state->rot[0] - state->pre_rot[0]), 
+                    mapping * (state->rot[1] - state->pre_rot[1]),
+                    mapping * (state->rot[2] - state->pre_rot[2]), 
+                    mapping * (state->rot[3] - state->pre_rot[3]));
+  rot_err << euler_angles[0], euler_angles[2], - euler_angles[1];
   elfin.GetNextJoints(next_joints, cur_joints, pos_error, rot_err);
 
 }
@@ -53,7 +57,7 @@ void RobotControl::Touch2Elfin(Eigen::Matrix<double,1,6>& cur_joints, Eigen::Mat
  * @param state {OmniState} State of the Touch X device
  * @param cur_joints Pointer to the current joint position of the robot
  */
-void RobotControl::GeomagicControl(OmniState *state, Eigen::Matrix<double,1,6>& cur_joints)
+void RobotControl::GeomagicControl(OmniState *state, Eigen::Matrix<double,1,6>& cur_joints, bool& init_exp)
 {
     // Initialize the robot and set initial velocity
     DcsCommand roboconnect;
@@ -68,6 +72,7 @@ void RobotControl::GeomagicControl(OmniState *state, Eigen::Matrix<double,1,6>& 
     roboconnect.MoveJ(target_joints);
     usleep(10000);
     while(roboconnect.isMoving()) usleep(1e6);
+    init_exp = true;
 
     // start servo
     double servo_time = 0.012;

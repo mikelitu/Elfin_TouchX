@@ -17,6 +17,7 @@ int height = 480;
 int fps = 30;
 std::string filename = "data/label.csv";
 std::fstream state_file;
+bool init_exp = false;
 
 HDCallbackCode HDCALLBACK omni_state_callback(void *pUserData) {
     OmniState *omni_state = static_cast<OmniState *>(pUserData);
@@ -37,14 +38,17 @@ HDCallbackCode HDCALLBACK omni_state_callback(void *pUserData) {
     omni_state->position = hduVector3Dd(cur_transform[3][0], -cur_transform[3][2], cur_transform[3][1]);
     // omni_state->position /= omni_state->units_ratio;
     // Orientation (quaternion)
-    hduMatrix rotation(cur_transform);
-    rotation.getRotationMatrix(rotation);
+    hduMatrix cur_rotation(cur_transform);
+    hduMatrix pre_rotation(pre_transform);
+    cur_rotation.getRotationMatrix(cur_rotation);
+    pre_rotation.getRotationMatrix(pre_rotation);
     hduMatrix rotation_offset( 0.0, -1.0, 0.0, 0.0,
                                1.0,  0.0, 0.0, 0.0,
                                0.0,  0.0, 1.0, 0.0,
                                0.0,  0.0, 0.0, 1.0);
     rotation_offset.getRotationMatrix(rotation_offset);
-    omni_state->rot = hduQuaternion(rotation_offset * rotation);
+    omni_state->rot = hduQuaternion(rotation_offset * cur_rotation);
+    omni_state->pre_rot = hduQuaternion(rotation_offset * pre_rotation);
     // Velocity estimation
     hduVector3Dd vel_buff(0, 0, 0);
     vel_buff = (omni_state->position * 3 -4 * omni_state->pos_hist1
@@ -185,7 +189,7 @@ void savestate(OmniState *state, Eigen::Matrix4d& cur_kinematics, Eigen::Matrix<
   state_file.close();
 }
 
-void recordstate(OmniState *state)
+void recordstate(OmniState *state, bool& init_exp)
 {
     CLinuxSerial forcesensor(0,115200);
     Eigen::Matrix<double,3,3> R;
@@ -205,7 +209,7 @@ void recordstate(OmniState *state)
         elfin.GetKinematics(cur_kinematics, cur_joints);
         R = cur_kinematics.block(0,0,3,3);
         ForceTorqueError(R, sensor);
-        savestate(state, cur_kinematics, cur_joints);
+        if (init_exp) savestate(state, cur_kinematics, cur_joints);
         usleep(5000);
     }
 }
@@ -247,10 +251,10 @@ int main()
     state_file.close();
 
     // Start all the threads corresponding to the different parts of the control loop
-    std::thread task0(&ImageConsumer::ImagePipeline, image_consumer, width, height, fps); // Image saving pipeline
+    std::thread task0(&ImageConsumer::ImagePipeline, image_consumer, width, height, fps, std::ref(init_exp)); // Image saving pipeline
     std::thread task1(&ImageConsumer::ImageWindow, image_consumer); // CV imshow  
-    std::thread task2(recordstate, &state); // Force sensor and state recording
-    std::thread task3(&RobotControl::GeomagicControl,roboctr, &state, std::ref(cur_joints)); // Robot teleoperation
+    std::thread task2(recordstate, &state, std::ref(init_exp)); // Force sensor and state recording
+    std::thread task3(&RobotControl::GeomagicControl,roboctr, &state, std::ref(cur_joints), std::ref(init_exp)); // Robot teleoperation
 
     // Join to the different threads
     task0.join();
