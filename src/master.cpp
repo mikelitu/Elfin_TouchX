@@ -317,16 +317,16 @@ int main(int argc, char *argv[])
     // Start all the threads corresponding to the different parts of the control loop
     std::thread task0(&ImageConsumer::ImagePipeline, image_consumer, width, height, fps, std::ref(init_exp), std::ref(save_dir)); // Image saving pipeline
     std::thread task1(&ImageConsumer::ImageWindow, image_consumer); // CV imshow  
-    std::thread task2(readstate); // Force sensor and state update
-    std::thread task4(savestate, &state, std::ref(init_exp), std::ref(filename)); // State string stream update
-    std::thread task3(&RobotControl::GeomagicControl,roboctr, &state, std::ref(cur_joints), std::ref(init_exp)); // Robot teleoperation
+    // std::thread task2(readstate); // Force sensor and state update
+    // std::thread task4(savestate, &state, std::ref(init_exp), std::ref(filename)); // State string stream update
+    // std::thread task3(&RobotControl::GeomagicControl,roboctr, &state, std::ref(cur_joints), std::ref(init_exp)); // Robot teleoperation
 
     // Join to the different threads
     task0.join();
     task1.join();
-    task2.join();
-    task3.join();
-    task4.join();
+    // task2.join();
+    // task3.join();
+    // task4.join();
 
     hdStopScheduler();
     hdDisableDevice(hHD);
