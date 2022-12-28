@@ -36,7 +36,9 @@ void ImageConsumer::ImagePipeline(int width, int height, int fps, bool& init_exp
 
 
     // Start streaming with the defined parameters
-    p.start(cfg);
+    rs2::pipeline_profile profile = p.start(cfg);
+    rs2::sensor sensor = profile.get_device().first<rs2::depth_sensor>();
+    sensor.set_option(RS2_OPTION_EXPOSURE, 1000.0);
 
     while(true)
     {
