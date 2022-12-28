@@ -3,7 +3,6 @@
 #include "robot_kinematics.hpp"
 #include <iostream>
 #include <Eigen/Dense>
-#include <HL/hl.h>
 #include <HD/hd.h>
 #include <HDU/hduError.h>
 #include <HDU/hduVector.h>

@@ -17,7 +17,7 @@ find_package(realsense2 REQUIRED)
 # add source files
 aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/src/ DIR_SRCS)
 if(NOT OPENHAPTICS_INCLUDE_DIR)
-  set(OPENHAPTICS_MESSAGE "OPENHAPTICS was not found. If you do not have it you will not be able to use the Phantom Omni.")
+  set(OPENHAPTICS_MESSAGE "OPENHAPTICS was not found. If you do not have it you will not be able to use the Touch X")
   message(STATUS "${OPENHAPTICS_MESSAGE}") 
   return()
 endif(NOT OPENHAPTICS_INCLUDE_DIR)
@@ -50,7 +50,6 @@ ${OpenCV_LIBS}
 ${DEPENDENCIES}
 ${realsense2_LIBRARY}
 HD
-HL
 HDU
 rt
 ncurses
