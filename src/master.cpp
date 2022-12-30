@@ -188,9 +188,9 @@ void ForceTorqueError(Eigen::Matrix<double,3,3>& R, float sensor[6])
     {
         float cur_read = sensor[i];
         if (i < 3) {
-            sensor[i] = cur_read + (float) forceError(i);
+            sensor[i] = cur_read - (float) forceError(i);
         } else {
-            sensor[i]=cur_read + (float) momentError(i);
+            sensor[i]=cur_read - (float) momentError(i);
         }
     }
 
@@ -230,8 +230,8 @@ void readstate()
     CLinuxSerial forcesensor(0,115200);
     Eigen::Matrix<double,3,3> R;
     ElfinModel elfin;
-    GravityAndError << -0.362162238545071, -0.9488305303568482, 0.5030068847143674, 1.9688996629897009, 1.3928323099319975, 6.8120990353488615;
-    CenterOfTool << 0.00016050140031025704, -0.00034666077586843096, 0.01056880047982528, 0.0566170134752443, -0.04367895455031198, -0.07368130590294658;
+    GravityAndError << 1.0833840743238556,-0.01678287956430408,1.1428178592376297,1.5127796640612932,2.393432878375426,7.7165948363256796;
+    CenterOfTool << 0.029751982693509114,0.00021035007795087966,0.025007755467372276,0.1043127737292455,0.11638511494211819,-0.1282459140964029;
     
     while (true)
     {
