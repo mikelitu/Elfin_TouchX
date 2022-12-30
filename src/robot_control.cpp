@@ -68,11 +68,11 @@ void RobotControl::GeomagicControl(OmniState *state, Eigen::Matrix<double,1,6>& 
 
     // Move to predefined initial position
     Eigen::Matrix<double,1,6> target_joints;    // initial position
-    target_joints << 13.720*M_PI/180, 31.219*M_PI/180, -45.2*M_PI/180, -130.435*M_PI/180, 51.593*M_PI/180, 56.404*M_PI/180;
+    target_joints << 16.129*M_PI/180, 27.832*M_PI/180, -63.392*M_PI/180, -125.111*M_PI/180, 40.165*M_PI/180, 40.915*M_PI/180;
     roboconnect.MoveJ(target_joints);
-    usleep(10000);
+    usleep(20000);
     while(roboconnect.isMoving()) usleep(1e6);
-    init_exp = true;
+    
 
     // start servo
     double servo_time = 0.012;
@@ -84,6 +84,7 @@ void RobotControl::GeomagicControl(OmniState *state, Eigen::Matrix<double,1,6>& 
     Eigen::Matrix<double,3,1> rot_err, pos_error;
     pos_error.fill(0);
     rot_err.fill(0);
+    init_exp = true;
 
     /**
      * @brief While loop to teleoperate the robot using position mapping with the Touch X haptic device.

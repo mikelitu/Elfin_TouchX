@@ -208,7 +208,9 @@ void savestate(OmniState *state, bool& init_exp, std::string& filename)
   state_file.open(filename, std::ios::app);
 
   while (true) {
+    std::cout << init_exp << std::endl;
     if (init_exp) {
+      
       state_stream << cur_kinematics(0,3) << "," << cur_kinematics(1,3) << "," << cur_kinematics(2,3) << "," << cur_kinematics(0,0) << "," << cur_kinematics(1,1) << ","
                   << cur_kinematics(2,2) << "," << cur_joints(0) << "," << cur_joints(1) << "," << cur_joints(2) << "," << cur_joints(3) << "," << cur_joints(4) << ","
                   << cur_joints(5) << "," << state->position[0] << "," << state->position[1] << "," << state->position[2] << "," << state->rot[0] << ","
@@ -242,7 +244,7 @@ void readstate()
         elfin.GetKinematics(cur_kinematics, cur_joints);
         R = cur_kinematics.block(0,0,3,3);
         ForceTorqueError(R, sensor);
-        usleep(2000);
+        usleep(5000);
 
     }
 }
@@ -307,7 +309,6 @@ int main(int argc, char *argv[])
     
     // Initialize the file to save the state afterwards
     std::string filename = save_dir + "/labels.csv";
-    std::fstream state_file;
     state_file.open(filename, std::ios::out);
     state_file << "Pos_Rob_X,Pos_Rob_Y,Pos_Rob_Z,Or_Rob_X,Or_Rob_Y,Or_Rob_Z,J_Rob_1,J_Rob_2,J_Rob_3,J_Rob_4,J_Rob_5,J_Rob_6,Pos_Hap_X,Pos_Hap_Y,Pos_Hap_Z,Or_Hap_X,Or_Hap_Y,Or_Hap_Z,Or_Hap_W,J_Hap_1,J_Hap_2,J_Hap_3,J_Hap_4,J_Hap_5,J_Hap_6,F_X,F_Y,F_Z,T_X,T_Y,T_Z\n";
     state_file.close();
@@ -317,16 +318,16 @@ int main(int argc, char *argv[])
     // Start all the threads corresponding to the different parts of the control loop
     std::thread task0(&ImageConsumer::ImagePipeline, image_consumer, width, height, fps, std::ref(init_exp), std::ref(save_dir)); // Image saving pipeline
     std::thread task1(&ImageConsumer::ImageWindow, image_consumer); // CV imshow  
-    // std::thread task2(readstate); // Force sensor and state update
-    // std::thread task4(savestate, &state, std::ref(init_exp), std::ref(filename)); // State string stream update
-    // std::thread task3(&RobotControl::GeomagicControl,roboctr, &state, std::ref(cur_joints), std::ref(init_exp)); // Robot teleoperation
+    std::thread task2(readstate); // Force sensor and state update
+    std::thread task4(savestate, &state, std::ref(init_exp), std::ref(filename)); // State string stream update
+    std::thread task3(&RobotControl::GeomagicControl,roboctr, &state, std::ref(cur_joints), std::ref(init_exp)); // Robot teleoperation
 
     // Join to the different threads
     task0.join();
     task1.join();
-    // task2.join();
-    // task3.join();
-    // task4.join();
+    task2.join();
+    task3.join();
+    task4.join();
 
     hdStopScheduler();
     hdDisableDevice(hHD);
