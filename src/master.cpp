@@ -98,7 +98,7 @@ HDCallbackCode HDCALLBACK omni_state_callback(void *pUserData) {
         if (hduIsSchedulerError(&error))
             return HD_CALLBACK_DONE;
     }
-    
+
     return HD_CALLBACK_CONTINUE;
 }
 
