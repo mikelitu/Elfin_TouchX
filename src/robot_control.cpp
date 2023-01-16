@@ -42,11 +42,7 @@ void RobotControl::Touch2Elfin(Eigen::Matrix<double,1,6>& cur_joints, Eigen::Mat
                               OmniState *state, Eigen::Matrix<double,3,1> pos_error, Eigen::Matrix<double,3,1>& rot_err) {
 
   pos_error << mapping * (state->position[0] - state->pre_position[0]), mapping * (state->position[2] - state->pre_position[2]), -mapping * (state->position[1] - state->pre_position[1]);
-  EulerfromQuaternion(mapping * (state->rot[0] - state->pre_rot[0]), 
-                    mapping * (state->rot[1] - state->pre_rot[1]),
-                    mapping * (state->rot[2] - state->pre_rot[2]), 
-                    mapping * (state->rot[3] - state->pre_rot[3]));
-  rot_err << euler_angles[0], euler_angles[2], - euler_angles[1];
+  rot_err << mapping * (state-> cur_gimbal_angles[0] - state->pre_gimbal_angles[0]), mapping * (state-> cur_gimbal_angles[2] - state->pre_gimbal_angles[2]), -mapping * (state-> cur_gimbal_angles[1] - state->pre_gimbal_angles[1]);
   elfin.GetNextJoints(next_joints, cur_joints, pos_error, rot_err);
 
 }

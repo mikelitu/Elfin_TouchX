@@ -31,6 +31,8 @@ struct OmniState {
     bool lock;
     bool close_gripper;
     hduVector3Dd lock_pos;
+    hduVector3Dd cur_gimbal_angles;
+    hduVector3Dd pre_gimbal_angles;
 };
 
 

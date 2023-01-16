@@ -116,7 +116,6 @@ void ElfinModel::GetNextJoints(Eigen::Matrix<double,1,6>& next_joints, Eigen::Ma
     // Calculate the cartesian position error
     GetJacobian(cur_jacobian,cur_joints);
     GetKinematics(cur_kinematics,cur_joints);
-    Eigen::AngleAxisd rotation_axis;
     Eigen::Matrix3d cur_rot;
     cur_rot = cur_kinematics.block(0,0,3,3);
 
@@ -125,7 +124,7 @@ void ElfinModel::GetNextJoints(Eigen::Matrix<double,1,6>& next_joints, Eigen::Ma
     Eigen::MatrixXd kinematicPos_e;
     
     kinematicPos_e = cur_rot * pos_error;
-    kinematicRot_e = cur_rot*roterror;
+    kinematicRot_e = cur_rot * roterror;
 
     for(int i=0;i<6;i++){
         if(i<3){

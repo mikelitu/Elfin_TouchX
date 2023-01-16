@@ -41,8 +41,9 @@ HDCallbackCode HDCALLBACK omni_state_callback(void *pUserData) {
     hdGetDoublev(HD_CURRENT_TRANSFORM, cur_transform);
     hdGetDoublev(HD_LAST_TRANSFORM, pre_transform);
     hdGetDoublev(HD_CURRENT_JOINT_ANGLES, omni_state->joints);
-    hduVector3Dd gimbal_angles;
-    hdGetDoublev(HD_CURRENT_GIMBAL_ANGLES, gimbal_angles);
+
+    hdGetDoublev(HD_CURRENT_GIMBAL_ANGLES, omni_state->cur_gimbal_angles);
+    hdGetDoublev(HD_LAST_GIMBAL_ANGLES, omni_state->pre_gimbal_angles);
     // Notice that we are inverting the Z-position value and changing Y <----> Z
     // Position
     omni_state->pre_position = hduVector3Dd(pre_transform[3][0], -pre_transform[3][2], pre_transform[3][1]);
@@ -97,12 +98,7 @@ HDCallbackCode HDCALLBACK omni_state_callback(void *pUserData) {
         if (hduIsSchedulerError(&error))
             return HD_CALLBACK_DONE;
     }
-
-    float t[7] = {0., omni_state->joints[0], omni_state->joints[1],
-                omni_state->joints[2] - omni_state->joints[1], gimbal_angles[0],
-                gimbal_angles[1], gimbal_angles[2]};
-    for (int i = 0; i < 7; i++)
-        omni_state->thetas[i] = t[i];
+    
     return HD_CALLBACK_CONTINUE;
 }
 
