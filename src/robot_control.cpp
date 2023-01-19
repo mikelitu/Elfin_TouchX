@@ -1,31 +1,17 @@
 #include "robot_control.hpp"
 #include "fstream"
 
-double mapping = 0.25;
+double mapping = 0.15;
 double pre_pos[3], cur_pos[3], euler_angles[3];
 ElfinModel elfin;
 
-void EulerfromQuaternion(double x, double y, double z, double w) {
-    double t0 = 2.0 * (w * x + y * z);
-    double t1 = 1.0 -2.0 * (x * x + y * y);
-    double roll_x = atan2(t0, t1);
+Eigen::Matrix3d RotMatFromEuler(double pitch, double yaw, double roll) {
+    Eigen::AngleAxisd rollAngle(roll, Eigen::Vector3d::UnitZ());
+    Eigen::AngleAxisd yawAngle(yaw, Eigen::Vector3d::UnitY());
+    Eigen::AngleAxisd pitchAngle(pitch, Eigen::Vector3d::UnitX());
 
-    double t2 = 2.0 * (w * y - z * w);
-    if (t2 > 1.0) {
-        t2 = 1.0;
-    } else if (t2 < -1.0)
-    {
-        t2 = -1.0;
-    }
-    double pitch_y = asin(t2);
-
-    double t3 = 2.0 * (w * z + x * y);
-    double t4 = 1.0 - 2.0 * (y * y + z * z);
-    double yaw_z = atan2(t3, t4);
-
-    euler_angles[0] = roll_x;
-    euler_angles[1] = pitch_y;
-    euler_angles[2] = yaw_z;
+    Eigen::Quaternion<double> q = rollAngle * yawAngle * pitchAngle;
+    return q.matrix();
 }
 
 /**
@@ -41,8 +27,11 @@ void EulerfromQuaternion(double x, double y, double z, double w) {
 void RobotControl::Touch2Elfin(Eigen::Matrix<double,1,6>& cur_joints, Eigen::Matrix<double,1,6>& next_joints, 
                               OmniState *state, Eigen::Matrix<double,3,1> pos_error, Eigen::Matrix<double,3,1>& rot_err) {
 
-  pos_error << mapping * (state->position[0] - state->pre_position[0]), mapping * (state->position[2] - state->pre_position[2]), -mapping * (state->position[1] - state->pre_position[1]);
-  rot_err << mapping * (state-> cur_gimbal_angles[0] - state->pre_gimbal_angles[0]), mapping * (state-> cur_gimbal_angles[2] - state->pre_gimbal_angles[2]), -mapping * (state-> cur_gimbal_angles[1] - state->pre_gimbal_angles[1]);
+  Eigen::Matrix3d RotMat = RotMatFromEuler(state->cur_gimbal_angles[0], state->cur_gimbal_angles[2], state->cur_gimbal_angles[1]);                         
+  pos_error << mapping * (state->position[0] - state->pre_position[0]), mapping * (state->position[2] - state->pre_position[2]), mapping * (state->position[1] - state->pre_position[1]);
+  pos_error = RotMat * pos_error;
+  rot_err << mapping * (state-> cur_gimbal_angles[0] - state->pre_gimbal_angles[0]), mapping * (state-> cur_gimbal_angles[1] - state->pre_gimbal_angles[1]), mapping * (state-> cur_gimbal_angles[2] - state->pre_gimbal_angles[2]);
+  rot_err = RotMat * rot_err;
   elfin.GetNextJoints(next_joints, cur_joints, pos_error, rot_err);
 
 }
@@ -64,7 +53,7 @@ void RobotControl::GeomagicControl(OmniState *state, Eigen::Matrix<double,1,6>& 
 
     // Move to predefined initial position
     Eigen::Matrix<double,1,6> target_joints;    // initial position
-    target_joints << 16.129*M_PI/180, 27.832*M_PI/180, -63.392*M_PI/180, -125.111*M_PI/180, 40.165*M_PI/180, 40.915*M_PI/180;
+    target_joints << 19.284*M_PI/180, 28.371*M_PI/180, -53.553*M_PI/180, -143.202*M_PI/180, 52.791*M_PI/180, 86.136*M_PI/180;
     roboconnect.MoveJ(target_joints);
     usleep(20000);
     while(roboconnect.isMoving()) usleep(1e6);
@@ -97,6 +86,7 @@ void RobotControl::GeomagicControl(OmniState *state, Eigen::Matrix<double,1,6>& 
         roboconnect.ReadCurrentJoint(cur_joints);
         Touch2Elfin(cur_joints, next_joints, state, pos_error, rot_err);
         roboconnect.PushServoJ(next_joints);
+        // std::cout << next_joints[0] << next_joints[1] << next_joints[2] << next_joints[3] << next_joints[4] << next_joints[5] << std::endl;
         usleep(17000);
 
     }

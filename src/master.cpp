@@ -81,8 +81,8 @@ HDCallbackCode HDCALLBACK omni_state_callback(void *pUserData) {
     hduVector3Dd feedback;
     // Notice we are changing Y <----> Z and inverting the Z-force_feedback
     feedback[0] = omni_state->force[0];
-    feedback[1] = omni_state->force[1];
-    feedback[2] = omni_state->force[2];
+    feedback[1] = omni_state->force[2];
+    feedback[2] = omni_state->force[1];
     hdSetDoublev(HD_CURRENT_FORCE, feedback);
 
     int nButtons = 0;
@@ -203,6 +203,10 @@ void savestate(OmniState *state, bool& init_exp, std::string& filename)
 {
   state_file.open(filename, std::ios::app);
 
+  state->force[0] = 0.1 * sensor[0];
+  state->force[1] = 0.1 * sensor[2];
+  state->force[2] = -0.1 * sensor[1];
+
   while (true) {
     std::cout << init_exp << std::endl;
     if (init_exp) {
@@ -211,8 +215,8 @@ void savestate(OmniState *state, bool& init_exp, std::string& filename)
                   << cur_kinematics(2,2) << "," << cur_joints(0) << "," << cur_joints(1) << "," << cur_joints(2) << "," << cur_joints(3) << "," << cur_joints(4) << ","
                   << cur_joints(5) << "," << state->position[0] << "," << state->position[1] << "," << state->position[2] << "," << state->rot[0] << ","
                   << state->rot[1] << "," << state->rot[2] << "," << state->rot[3] << "," << state->joints[0] << "," << state->joints[1] << "," << state->joints[2] << ","
-                  << state->joints[3] << "," << state->joints[4] << "," << state->joints[5] << "," << sensor[0] << "," << sensor[1] << "," << sensor[2] << "," 
-                  << sensor[3] << "," << sensor[4] << "," << sensor[5] << "\n";
+                  << state->joints[3] << "," << state->joints[4] << "," << state->joints[5] << "," << sensor[0] << "," << sensor[2] << "," << -sensor[1] << "," 
+                  << sensor[3] << "," << sensor[5] << "," << -sensor[4] << "\n";
       usleep(5000);
     }
   }        
@@ -226,8 +230,8 @@ void readstate()
     CLinuxSerial forcesensor(0,115200);
     Eigen::Matrix<double,3,3> R;
     ElfinModel elfin;
-    GravityAndError << 1.15780906, 0.12514845, 2.17331988, 0.65143336, 3.01754272, 8.51761798;
-    CenterOfTool << 0.02360052,  0.00851793,  0.0573108, 0.07053365,  0.03247051, -0.12490767;
+    GravityAndError << 1.22875977, 0.12287842, 2.23705746, 1.10417579, 2.9727096,  8.86071791;
+    CenterOfTool << 0.02501844, -0.00661609,  0.05771841,  0.18731095,  0.02821454, -0.1544118;
     
     while (true)
     {
@@ -240,6 +244,7 @@ void readstate()
         elfin.GetKinematics(cur_kinematics, cur_joints);
         R = cur_kinematics.block(0,0,3,3);
         ForceTorqueError(R, sensor);
+        
         usleep(5000);
 
     }
