@@ -27,11 +27,11 @@ Eigen::Matrix3d RotMatFromEuler(double pitch, double yaw, double roll) {
 void RobotControl::Touch2Elfin(Eigen::Matrix<double,1,6>& cur_joints, Eigen::Matrix<double,1,6>& next_joints, 
                               OmniState *state, Eigen::Matrix<double,3,1> pos_error, Eigen::Matrix<double,3,1>& rot_err) {
 
-  Eigen::Matrix3d RotMat = RotMatFromEuler(state->cur_gimbal_angles[0], state->cur_gimbal_angles[2], state->cur_gimbal_angles[1]);                         
-  pos_error << mapping * (state->position[0] - state->pre_position[0]), mapping * (state->position[2] - state->pre_position[2]), mapping * (state->position[1] - state->pre_position[1]);
-  pos_error = RotMat * pos_error;
-  rot_err << mapping * (state-> cur_gimbal_angles[0] - state->pre_gimbal_angles[0]), mapping * (state-> cur_gimbal_angles[1] - state->pre_gimbal_angles[1]), mapping * (state-> cur_gimbal_angles[2] - state->pre_gimbal_angles[2]);
-  rot_err = RotMat * rot_err;
+  Eigen::Matrix3d RotMat = RotMatFromEuler(state->cur_gimbal_angles[0], state->cur_gimbal_angles[2], -state->cur_gimbal_angles[1]);                         
+  pos_error << mapping * (state->position[0] - state->pre_position[0]), mapping * (state->position[2] - state->pre_position[2]), -mapping * (state->position[1] - state->pre_position[1]);
+  pos_error = RotMat.inverse() * pos_error;
+  rot_err << mapping * (state-> cur_gimbal_angles[0] - state->pre_gimbal_angles[0]), mapping * (state-> cur_gimbal_angles[2] - state->pre_gimbal_angles[2]), -mapping * (state-> cur_gimbal_angles[1] - state->pre_gimbal_angles[1]);
+  rot_err = RotMat.inverse() * rot_err;
   elfin.GetNextJoints(next_joints, cur_joints, pos_error, rot_err);
 
 }
