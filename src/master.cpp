@@ -32,9 +32,9 @@ namespace fs = std::filesystem;
 
 HDCallbackCode HDCALLBACK omni_state_callback(void *pUserData) {
     OmniState *omni_state = static_cast<OmniState *>(pUserData);
-    if (hdCheckCalibration() == HD_CALIBRATION_NEEDS_UPDATE) {
-        hdUpdateCalibration(calibrationStyle);
-    }
+    // if (hdCheckCalibration() == HD_CALIBRATION_NEEDS_UPDATE) {
+    //    hdUpdateCalibration(calibrationStyle);
+    // }
     hdBeginFrame(hdGetCurrentDevice());
     // Get transform angles
     hduMatrix cur_transform, pre_transform;
@@ -284,7 +284,7 @@ int main(int argc, char *argv[])
         hduPrintError(stderr, &error, "Failed to start the scheduler");
     }
 
-    HHD_Auto_Calibration();
+    // HHD_Auto_Calibration();
     // Define the callback loop
     OmniState state;
     hdScheduleAsynchronous(omni_state_callback, &state,
