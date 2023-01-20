@@ -9,10 +9,13 @@
 #include <signal.h>
 
 float sensor[6]; // sensor values
+float save_sensor[6]; //transformed sensor values
 Eigen::Matrix<double,1,6> cur_joints; // current joints value
 Eigen::Matrix<double,1,6> GravityAndError; // gravity compesentation vector
 Eigen::Matrix<double,1,6> CenterOfTool; // center of mass of the tool
 Eigen::Matrix4d cur_kinematics; // the value of the current kinematics
+Eigen::Matrix3d rot2tool;
+Eigen::Matrix<double,3,1> trans2tool, postool, trans_force, trans_torque;
 int calibrationStyle; // calibration style for the omni device
 int width = 640; // camera image width
 int height = 480; // camera image height
@@ -22,6 +25,9 @@ std::stringstream state_stream; // stream to save the robot state
 std::string save_dir = "/home/mikel/experiments"; // home folder for the experiments data
 std::fstream state_file; // file stream to save the state data
 namespace fs = std::filesystem;
+typedef std::array<double, 3> double3;
+double3 euler;
+
 
 /**
  * @brief Callback function for the TouchX device
@@ -192,6 +198,24 @@ void ForceTorqueError(Eigen::Matrix<double,3,3>& R, float sensor[6])
 
 }
 
+double3 Rot2Euler(Eigen::Matrix3d& R) {
+  return {
+    -atan2(R(1,0), R(0,0)),
+    asin(R(2,0)),
+    atan2(R(2,1), R(2,2))
+  };
+}
+
+void TransformState(Eigen::Matrix3d& R) {
+  
+  euler = Rot2Euler(R);
+  postool << cur_kinematics(0,3) + trans2tool(0),
+              cur_kinematics(1,3) + trans2tool(1),
+              cur_kinematics(2,3) + trans2tool(2);
+
+  postool = R * postool;   
+}
+
 /**
  * @brief Update the state stream
  * 
@@ -203,20 +227,39 @@ void savestate(OmniState *state, bool& init_exp, std::string& filename)
 {
   state_file.open(filename, std::ios::app);
 
-  state->force[0] = 0.1 * sensor[0];
-  state->force[1] = 0.1 * sensor[2];
-  state->force[2] = -0.1 * sensor[1];
+  rot2tool.fill(0);
+  rot2tool(0,2) = 1;
+  rot2tool(1,0) = 1;
+  rot2tool(2,1) = 1;
+  trans2tool << 0, 0.34, -0.1;
+  trans_force.fill(0);
+  trans_torque.fill(0);
 
   while (true) {
     std::cout << init_exp << std::endl;
     if (init_exp) {
+
+      Eigen::Matrix3d R = cur_kinematics.block(0,0,3,3);
       
-      state_stream << cur_kinematics(0,3) << "," << cur_kinematics(1,3) << "," << cur_kinematics(2,3) << "," << cur_kinematics(0,0) << "," << cur_kinematics(1,1) << ","
-                  << cur_kinematics(2,2) << "," << cur_joints(0) << "," << cur_joints(1) << "," << cur_joints(2) << "," << cur_joints(3) << "," << cur_joints(4) << ","
-                  << cur_joints(5) << "," << state->position[0] << "," << state->position[1] << "," << state->position[2] << "," << state->rot[0] << ","
-                  << state->rot[1] << "," << state->rot[2] << "," << state->rot[3] << "," << state->joints[0] << "," << state->joints[1] << "," << state->joints[2] << ","
-                  << state->joints[3] << "," << state->joints[4] << "," << state->joints[5] << "," << sensor[0] << "," << sensor[2] << "," << -sensor[1] << "," 
-                  << sensor[3] << "," << sensor[5] << "," << -sensor[4] << "\n";
+      TransformState(R);
+      trans_force << sensor[0], sensor[1], sensor[2];
+      trans_torque << sensor[3], sensor[4], sensor[5];
+
+      trans_force = R * trans_force;
+      trans_torque = R * trans_torque;
+
+      state_stream << postool(0) << "," << postool(1) << "," << postool(2) << "," << euler[0] << "," << euler[1] << "," << euler[2]
+                  << "," << cur_joints(0) << "," << cur_joints(1) << "," << cur_joints(2) << "," << cur_joints(3) << "," << cur_joints(4) << ","
+                  << cur_joints(5) << "," << state->position[0] << "," << state->position[1] << "," << state->position[2] << "," << state->cur_gimbal_angles[0] << ","
+                  << state->cur_gimbal_angles[1] << "," << state->cur_gimbal_angles[2] << ","<< "," << state->joints[0] << "," << state->joints[1] << "," << state->joints[2] << ","
+                  << state->joints[3] << "," << state->joints[4] << "," << state->joints[5] << "," << trans_force(0) << "," << trans_force(1) << "," << trans_force(2) << "," 
+                  << trans_torque(0) << "," << trans_torque(1) << "," << trans_torque(2) << "\n";
+
+      // Force feedback
+      // state->force[0] = 0.05 * trans_force(0);
+      // state->force[1] = 0.05 * trans_force(1);
+      // state->force[2] = 0.05 * trans_force(2);
+
       usleep(5000);
     }
   }        
@@ -230,7 +273,7 @@ void readstate()
     CLinuxSerial forcesensor(0,115200);
     Eigen::Matrix<double,3,3> R;
     ElfinModel elfin;
-    GravityAndError << 1.22875977, 0.12287842, 2.23705746, 1.10417579, 2.9727096,  8.86071791;
+    GravityAndError << 1.22875977, 0.12287842, 2.23705746, 4.60417579, 4.5727096,  7.96071791;
     CenterOfTool << 0.02501844, -0.00661609,  0.05771841,  0.18731095,  0.02821454, -0.1544118;
     
     while (true)

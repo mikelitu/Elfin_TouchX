@@ -40,7 +40,6 @@ void ElfinModel::GetKinematics(Eigen::Matrix4d& cur_kinematics, Eigen::Matrix<do
         cos(x5)* (cos(x2 + M_PI / 2) * cos(x3 + M_PI / 2) + sin(x2 + M_PI / 2) * sin(x3 + M_PI / 2)) - cos(x4) * sin(x5) * (cos(x2 + M_PI / 2) * sin(x3 + M_PI / 2) - cos(x3 + M_PI / 2) * sin(x2 + M_PI / 2)),
         d1 + d6 * (cos(x5) * (cos(x2 + M_PI / 2) * cos(x3 + M_PI / 2) + sin(x2 + M_PI / 2) * sin(x3 + M_PI / 2)) - cos(x4) * sin(x5) * (cos(x2 + M_PI / 2) * sin(x3 + M_PI / 2) - cos(x3 + M_PI / 2) * sin(x2 + M_PI / 2))) + d4 * (cos(x2 + M_PI / 2) * cos(x3 + M_PI / 2) + sin(x2 + M_PI / 2) * sin(x3 + M_PI / 2)) + a2 * sin(x2 + M_PI / 2),
         0, 0, 0, 1;
-    // std::cout << "kenimatics = " << cur_kenimatics << std::endl;
 }
 
 /**
