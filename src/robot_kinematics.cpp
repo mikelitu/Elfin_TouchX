@@ -115,26 +115,17 @@ void ElfinModel::GetNextJoints(Eigen::Matrix<double,1,6>& next_joints, Eigen::Ma
     // Calculate the cartesian position error
     GetJacobian(cur_jacobian,cur_joints);
     GetKinematics(cur_kinematics,cur_joints);
-    Eigen::Matrix3d cur_rot;
-    cur_rot = cur_kinematics.block(0,0,3,3);
-
-    // input the rotation change in axis
-    Eigen::MatrixXd kinematicRot_e;
-    Eigen::MatrixXd kinematicPos_e;
-    
-    kinematicPos_e = cur_rot * pos_error;
-    kinematicRot_e = cur_rot * roterror;
 
     for(int i=0;i<6;i++){
         if(i<3){
-            error_kinematics(0,i) = kinematicPos_e(i); //next_kinematics(i,3)-cur_kinematics(i,3);
+            error_kinematics(0,i) = pos_error(i); //next_kinematics(i,3)-cur_kinematics(i,3);
         }else{
-            error_kinematics(0,i) = kinematicRot_e(i-3); //rotation_axis.axis()(i-3)*rotation_axis.angle();
+            error_kinematics(0,i) = roterror(i-3); //rotation_axis.axis()(i-3)*rotation_axis.angle();
         }
     }
 
 
-    //std::cout << "error_kenimatics = " << error_kenimatics << std::endl;
+    // std::cout << "error_kinematics = " << error_kinematics << std::endl;
     // Using damped joints method to get next joints
     double lamba = 0.001;
     Eigen::Matrix<double,6,6> jacobian_pseudo_inverse;

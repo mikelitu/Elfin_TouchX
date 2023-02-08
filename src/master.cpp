@@ -17,7 +17,7 @@ Eigen::Matrix4d cur_kinematics; // the value of the current kinematics
 Eigen::Matrix3d rot2tool;
 Eigen::Matrix<double,3,1> trans2tool, postool, trans_force, trans_torque;
 int calibrationStyle; // calibration style for the omni device
-int width = 640; // camera image width
+int width = 848; // camera image width
 int height = 480; // camera image height
 int fps = 30; // fps of the video
 bool init_exp = false; // flag to intialize the experiment
@@ -54,7 +54,8 @@ HDCallbackCode HDCALLBACK omni_state_callback(void *pUserData) {
     // Position
     omni_state->pre_position = hduVector3Dd(pre_transform[3][0], -pre_transform[3][2], pre_transform[3][1]);
     omni_state->position = hduVector3Dd(cur_transform[3][0], -cur_transform[3][2], cur_transform[3][1]);
-    // omni_state->position /= omni_state->units_ratio;
+    omni_state->position /= 1000;
+    omni_state->pre_position /= 1000;
     // Orientation (quaternion)
     hduMatrix cur_rotation(cur_transform);
     hduMatrix pre_rotation(pre_transform);
@@ -250,8 +251,8 @@ void savestate(OmniState *state, bool& init_exp, std::string& filename)
 
       state_stream << postool(0) << "," << postool(1) << "," << postool(2) << "," << euler[0] << "," << euler[1] << "," << euler[2]
                   << "," << cur_joints(0) << "," << cur_joints(1) << "," << cur_joints(2) << "," << cur_joints(3) << "," << cur_joints(4) << ","
-                  << cur_joints(5) << "," << state->position[0] << "," << state->position[1] << "," << state->position[2] << "," << state->cur_gimbal_angles[0] << ","
-                  << state->cur_gimbal_angles[1] << "," << state->cur_gimbal_angles[2] << ","<< "," << state->joints[0] << "," << state->joints[1] << "," << state->joints[2] << ","
+                  << cur_joints(5) << "," << state->position[0] << "," << state->position[1] << "," << state->position[2] << "," << state->rot[0] << ","
+                  << state->rot[1] << "," << state->rot[2] << "," << state->rot[3] << "," << state->joints[0] << "," << state->joints[1] << "," << state->joints[2] << ","
                   << state->joints[3] << "," << state->joints[4] << "," << state->joints[5] << "," << trans_force(0) << "," << trans_force(1) << "," << trans_force(2) << "," 
                   << trans_torque(0) << "," << trans_torque(1) << "," << trans_torque(2) << "\n";
 
