@@ -58,7 +58,7 @@ void RobotControl::GeomagicControl(OmniState *state, Eigen::Matrix<double,1,6>& 
 
     // Move to predefined initial position
     Eigen::Matrix<double,1,6> target_joints;    // initial position
-    target_joints << 25.451*M_PI/180, 43.550*M_PI/180, -36.059*M_PI/180, -147.770*M_PI/180, 43.239*M_PI/180, 94.790*M_PI/180;
+    target_joints << 13.934*M_PI/180, 33.903*M_PI/180, -51.898*M_PI/180, -123.543*M_PI/180, 27.456*M_PI/180, 123.997*M_PI/180;
     roboconnect.MoveJ(target_joints);
     usleep(20000);
     while(roboconnect.isMoving()) usleep(1e6);

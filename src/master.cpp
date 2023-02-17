@@ -7,6 +7,7 @@
 #include "Eigen/Dense"
 #include <filesystem>
 #include <signal.h>
+#include <chrono>
 
 float sensor[6]; // sensor values
 float save_sensor[6]; //transformed sensor values
@@ -17,7 +18,7 @@ Eigen::Matrix4d cur_kinematics; // the value of the current kinematics
 Eigen::Matrix3d rot2tool;
 Eigen::Matrix<double,3,1> trans2tool, postool, trans_force, trans_torque;
 int calibrationStyle; // calibration style for the omni device
-int width = 848; // camera image width
+int width = 640; // camera image width
 int height = 480; // camera image height
 int fps = 30; // fps of the video
 bool init_exp = false; // flag to intialize the experiment
@@ -27,6 +28,8 @@ std::fstream state_file; // file stream to save the state data
 namespace fs = std::filesystem;
 typedef std::array<double, 3> double3;
 double3 euler;
+using namespace std::chrono_literals;
+struct TimeOutException {};
 
 
 /**
@@ -87,9 +90,9 @@ HDCallbackCode HDCALLBACK omni_state_callback(void *pUserData) {
 
     hduVector3Dd feedback;
     // Notice we are changing Y <----> Z and inverting the Z-force_feedback
-    feedback[0] = omni_state->force[0];
-    feedback[1] = omni_state->force[2];
-    feedback[2] = omni_state->force[1];
+    feedback[0] = omni_state->force[0] + 0.001 * omni_state->velocity[0];
+    feedback[1] = omni_state->force[2] + 0.001 * omni_state->velocity[2];
+    feedback[2] = omni_state->force[1] + 0.001 * omni_state->velocity[1];
     hdSetDoublev(HD_CURRENT_FORCE, feedback);
 
     int nButtons = 0;
@@ -269,13 +272,23 @@ void savestate(OmniState *state, bool& init_exp, std::string& filename)
 /**
  * @brief Update the state and sensor vectors
  */
-void readstate()
+void readstate(OmniState *state)
 {
     CLinuxSerial forcesensor(0,115200);
     Eigen::Matrix<double,3,3> R;
     ElfinModel elfin;
-    GravityAndError << 1.22875977, 0.12287842, 2.23705746, 4.60417579, 4.5727096,  7.96071791;
-    CenterOfTool << 0.02501844, -0.00661609,  0.05771841,  0.18731095,  0.02821454, -0.1544118;
+    GravityAndError << 1.63157604, 0.10619959, 2.99806498, 7.71733483, 1.39279575, 5.22274259;
+    CenterOfTool << 0.00579565, -0.00817904, 0.05135213, 0.14724557, -0.02858014, -0.09672604;
+    rot2tool.fill(0);
+    rot2tool(0,2) = 1;
+    rot2tool(1,0) = 1;
+    rot2tool(2,1) = 1;
+    trans2tool << 0, 0.34, -0.1;
+    trans_force.fill(0);
+    trans_torque.fill(0);
+
+    usleep(10000);
+        
     
     while (true)
     {
@@ -288,6 +301,26 @@ void readstate()
         elfin.GetKinematics(cur_kinematics, cur_joints);
         R = cur_kinematics.block(0,0,3,3);
         ForceTorqueError(R, sensor);
+        // std::cout << sensor[0] << ", " << sensor[1] << ", " << sensor[2] << std::endl;
+        TransformState(R);
+        trans_force << sensor[0], sensor[1], sensor[2];
+        trans_force = R * trans_force;
+
+        // std::cout << trans_force << std::endl;
+
+
+        // Force feedback
+        if (trans_force.squaredNorm() > 1.5) {
+          state->force[0] = -0.15 * trans_force(0);
+          state->force[1] = 0.15 * trans_force(1);
+          state->force[2] = -0.15 * trans_force(2);
+        }
+        else {
+          state->force[0] = 0.0;
+          state->force[1] = 0.0;
+          state->force[2] = 0.0;
+        }
+        
         
         usleep(5000);
 
@@ -299,12 +332,12 @@ void readstate()
  * 
  * @param sig Signal type
  */
-void end_experiment(int sig) {
-  std::cout << "Caugth signal" <<std::endl;
-  state_file << state_stream.str();
-  state_file.close();
-  exit(0);
-}
+// void end_experiment(int sig) {
+//   std::cout << "Caugth signal" <<std::endl;
+//   state_file << state_stream.str();
+//   state_file.close();
+//   exit(0);
+// }
 
 
 int main(int argc, char *argv[])
@@ -340,39 +373,44 @@ int main(int argc, char *argv[])
 
     // Create a file to write the labels for the experiment
     
-    if (argc < 2) {
-      std::string exp_name = "last_data";
-      save_dir += "/" + exp_name;
-    } else {
-      std::string exp_name = argv[1];
-      save_dir += "/" + exp_name;
-    }
+    // if (argc < 2) {
+    //   std::string exp_name = "last_data";
+    //   save_dir += "/" + exp_name;
+    // } else {
+    //   std::string exp_name = argv[1];
+    //   save_dir += "/" + exp_name;
+    // }
     
-    if (!fs::exists(save_dir)) {
-        fs::create_directories(save_dir);
-    }
+    // if (!fs::exists(save_dir)) {
+    //     fs::create_directories(save_dir);
+    // }
     
     // Initialize the file to save the state afterwards
-    std::string filename = save_dir + "/labels.csv";
-    state_file.open(filename, std::ios::out);
-    state_file << "Pos_Rob_X,Pos_Rob_Y,Pos_Rob_Z,Or_Rob_X,Or_Rob_Y,Or_Rob_Z,J_Rob_1,J_Rob_2,J_Rob_3,J_Rob_4,J_Rob_5,J_Rob_6,Pos_Hap_X,Pos_Hap_Y,Pos_Hap_Z,Or_Hap_X,Or_Hap_Y,Or_Hap_Z,Or_Hap_W,J_Hap_1,J_Hap_2,J_Hap_3,J_Hap_4,J_Hap_5,J_Hap_6,F_X,F_Y,F_Z,T_X,T_Y,T_Z\n";
-    state_file.close();
+    // std::string filename = save_dir + "/labels.csv";
+    // state_file.open(filename, std::ios::out);
+    // state_file << "Pos_Rob_X,Pos_Rob_Y,Pos_Rob_Z,Or_Rob_X,Or_Rob_Y,Or_Rob_Z,J_Rob_1,J_Rob_2,J_Rob_3,J_Rob_4,J_Rob_5,J_Rob_6,Pos_Hap_X,Pos_Hap_Y,Pos_Hap_Z,Or_Hap_X,Or_Hap_Y,Or_Hap_Z,Or_Hap_W,J_Hap_1,J_Hap_2,J_Hap_3,J_Hap_4,J_Hap_5,J_Hap_6,F_X,F_Y,F_Z,T_X,T_Y,T_Z\n";
+    // state_file.close();
 
-    signal(SIGINT, end_experiment); // Function to catch the Ctr+C command and save the data stream into the csv file
+    // signal(SIGINT, end_experiment); // Function to catch the Ctr+C command and save the data stream into the csv file
 
     // Start all the threads corresponding to the different parts of the control loop
-    std::thread task0(&ImageConsumer::ImagePipeline, image_consumer, width, height, fps, std::ref(init_exp), std::ref(save_dir)); // Image saving pipeline
-    std::thread task1(&ImageConsumer::ImageWindow, image_consumer); // CV imshow  
-    std::thread task2(readstate); // Force sensor and state update
-    std::thread task4(savestate, &state, std::ref(init_exp), std::ref(filename)); // State string stream update
+    // std::thread task0(&ImageConsumer::ImagePipeline, image_consumer, width, height, fps, std::ref(init_exp), std::ref(save_dir)); // Image saving pipeline
+    // std::thread task1(&ImageConsumer::ImageWindow, image_consumer); // CV imshow  
+    std::thread task2(readstate, &state); // Force sensor and state update
+    // std::thread task4(savestate, &state, std::ref(init_exp), std::ref(filename)); // State string stream update
     std::thread task3(&RobotControl::GeomagicControl,roboctr, &state, std::ref(cur_joints), std::ref(init_exp)); // Robot teleoperation
+    std::thread([]{
+      std::this_thread::sleep_for(20s);
+      std::cerr << "TLE" << std::endl;
+      throw TimeOutException{}; 
+    }).detach();
 
     // Join to the different threads
-    task0.join();
-    task1.join();
+    // task0.join();
+    // task1.join();
     task2.join();
     task3.join();
-    task4.join();
+    // task4.join();
 
     hdStopScheduler();
     hdDisableDevice(hHD);
