@@ -264,7 +264,7 @@ void savestate(OmniState *state, bool& init_exp, std::string& filename)
       // state->force[1] = 0.05 * trans_force(1);
       // state->force[2] = 0.05 * trans_force(2);
 
-      usleep(5000);
+      usleep(4500);
     }
   }        
 }
@@ -310,19 +310,19 @@ void readstate(OmniState *state)
 
 
         // Force feedback
-        if (trans_force.squaredNorm() > 1.5) {
-          state->force[0] = -0.15 * trans_force(0);
-          state->force[1] = 0.15 * trans_force(1);
-          state->force[2] = -0.15 * trans_force(2);
-        }
-        else {
-          state->force[0] = 0.0;
-          state->force[1] = 0.0;
-          state->force[2] = 0.0;
-        }
+        // if (trans_force.squaredNorm() > 1.5) {
+        //   state->force[0] = -0.15 * trans_force(0);
+        //   state->force[1] = 0.15 * trans_force(1);
+        //   state->force[2] = -0.15 * trans_force(2);
+        // }
+        // else {
+        //   state->force[0] = 0.0;
+        //   state->force[1] = 0.0;
+        //   state->force[2] = 0.0;
+        // }
         
         
-        usleep(5000);
+        usleep(4500);
 
     }
 }
@@ -332,12 +332,12 @@ void readstate(OmniState *state)
  * 
  * @param sig Signal type
  */
-// void end_experiment(int sig) {
-//   std::cout << "Caugth signal" <<std::endl;
-//   state_file << state_stream.str();
-//   state_file.close();
-//   exit(0);
-// }
+void end_experiment(int sig) {
+  std::cout << "Caugth signal" <<std::endl;
+  state_file << state_stream.str();
+  state_file.close();
+  exit(0);
+}
 
 
 int main(int argc, char *argv[])
@@ -373,49 +373,49 @@ int main(int argc, char *argv[])
 
     // Create a file to write the labels for the experiment
     
-    // if (argc < 2) {
-    //   std::string exp_name = "last_data";
-    //   save_dir += "/" + exp_name;
-    // } else {
-    //   std::string exp_name = argv[1];
-    //   save_dir += "/" + exp_name;
-    // }
+    if (argc < 2) {
+      std::string exp_name = "last_data";
+      save_dir += "/" + exp_name;
+    } else {
+      std::string exp_name = argv[1];
+      save_dir += "/" + exp_name;
+    }
     
-    // if (!fs::exists(save_dir)) {
-    //     fs::create_directories(save_dir);
-    // }
+    if (!fs::exists(save_dir)) {
+        fs::create_directories(save_dir);
+        fs::create_directories(save_dir+"/RGB_frames");
+        fs::create_directories(save_dir+"/Depth_frames");
+    }
     
     // Initialize the file to save the state afterwards
-    // std::string filename = save_dir + "/labels.csv";
-    // state_file.open(filename, std::ios::out);
-    // state_file << "Pos_Rob_X,Pos_Rob_Y,Pos_Rob_Z,Or_Rob_X,Or_Rob_Y,Or_Rob_Z,J_Rob_1,J_Rob_2,J_Rob_3,J_Rob_4,J_Rob_5,J_Rob_6,Pos_Hap_X,Pos_Hap_Y,Pos_Hap_Z,Or_Hap_X,Or_Hap_Y,Or_Hap_Z,Or_Hap_W,J_Hap_1,J_Hap_2,J_Hap_3,J_Hap_4,J_Hap_5,J_Hap_6,F_X,F_Y,F_Z,T_X,T_Y,T_Z\n";
-    // state_file.close();
+    std::string filename = save_dir + "/labels.csv";
+    state_file.open(filename, std::ios::out);
+    state_file << "Pos_Rob_X,Pos_Rob_Y,Pos_Rob_Z,Or_Rob_X,Or_Rob_Y,Or_Rob_Z,J_Rob_1,J_Rob_2,J_Rob_3,J_Rob_4,J_Rob_5,J_Rob_6,Pos_Hap_X,Pos_Hap_Y,Pos_Hap_Z,Or_Hap_X,Or_Hap_Y,Or_Hap_Z,Or_Hap_W,J_Hap_1,J_Hap_2,J_Hap_3,J_Hap_4,J_Hap_5,J_Hap_6,F_X,F_Y,F_Z,T_X,T_Y,T_Z\n";
+    state_file.close();
 
-    // signal(SIGINT, end_experiment); // Function to catch the Ctr+C command and save the data stream into the csv file
+    signal(SIGINT, end_experiment); // Function to catch the Ctr+C command and save the data stream into the csv file
 
     // Start all the threads corresponding to the different parts of the control loop
-    // std::thread task0(&ImageConsumer::ImagePipeline, image_consumer, width, height, fps, std::ref(init_exp), std::ref(save_dir)); // Image saving pipeline
-    // std::thread task1(&ImageConsumer::ImageWindow, image_consumer); // CV imshow  
+    std::thread task0(&ImageConsumer::ImagePipeline, image_consumer, width, height, fps, std::ref(init_exp), std::ref(save_dir)); // Image saving pipeline
+    std::thread task1(&ImageConsumer::ImageWindow, image_consumer); // CV imshow  
     std::thread task2(readstate, &state); // Force sensor and state update
-    // std::thread task4(savestate, &state, std::ref(init_exp), std::ref(filename)); // State string stream update
+    std::thread task4(savestate, &state, std::ref(init_exp), std::ref(filename)); // State string stream update
     std::thread task3(&RobotControl::GeomagicControl,roboctr, &state, std::ref(cur_joints), std::ref(init_exp)); // Robot teleoperation
-    std::thread([]{
-      std::this_thread::sleep_for(20s);
-      std::cerr << "TLE" << std::endl;
-      throw TimeOutException{}; 
+    std::thread([&]{
+      std::this_thread::sleep_for(50s);
+      state_file << state_stream.str();
+      state_file.close();
+      hdStopScheduler();
+      hdDisableDevice(hHD);
+      exit(0);
     }).detach();
 
     // Join to the different threads
-    // task0.join();
-    // task1.join();
+    task0.join();
+    task1.join();
     task2.join();
     task3.join();
-    // task4.join();
-
-    hdStopScheduler();
-    hdDisableDevice(hHD);
-
-    return 0;
+    task4.join();
     
 }
 
